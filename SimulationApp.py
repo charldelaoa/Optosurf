@@ -67,7 +67,7 @@ sigma = st.sidebar.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
 n = st.sidebar.slider("Order", 2, 10, 4, 1)
 number_points = st.sidebar.slider("Number of points", 10, 1000, 32, 1)
 degrees = st.sidebar.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
-degrees
+
 # Create the Streamlit app
 st.title("Super-Gaussian Equation Plotter")
 

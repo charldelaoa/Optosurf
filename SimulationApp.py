@@ -5,7 +5,7 @@ import numpy as np
 
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
 
-st.write(dir())
+
 def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     # x axis format
     plot.xaxis.axis_label = xlabel

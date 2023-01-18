@@ -79,7 +79,7 @@ with expander_g:
 expander_i = st.sidebar.expander("Integration parameters", expanded = True)
 with expander_i:
     number_windows = st.slider("Number of windows", 1, 100, 32, 1)
-    gap = st.slider("Number of gap points", 0, 150, 80, 1)
+    gap = st.slider("Number of gap points", 0, 1000, 100, 1)
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 

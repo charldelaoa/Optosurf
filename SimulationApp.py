@@ -62,6 +62,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
 
 
 # 1. Define the default values for the variables
+print("Test")
 mu = st.sidebar.slider("Mean", -15.0, 15.0, 0.0, 0.1)
 sigma = st.sidebar.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
 n = st.sidebar.slider("Order", 2, 10, 4, 1)

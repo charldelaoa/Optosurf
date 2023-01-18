@@ -62,7 +62,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
 
 
 # 1. Define the default values for the variables
-mu = st.sidebar.slider("Mean", -15.0, 15.0, 0.0, 0.1)
+mu = st.sidebar.slider("Mean", -5.0, 5.0, 0.0, 0.1)
 sigma = st.sidebar.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
 n = st.sidebar.slider("Order", 2, 10, 4, 1)
 number_points = st.sidebar.slider("Number of points", 10, 1000, 32, 1)
@@ -70,17 +70,5 @@ degrees = st.sidebar.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
 
 # Create the Streamlit app
 st.title("Super-Gaussian Equation Plotter")
-st.title("\n $y = e^{-((x-\mu)/\sigma)^n}$")
 
-col1, col2 = st.columns(2)
-
-with col1:
-    plot_equation(mu, sigma, n, number_points, degrees)
-
-with col2: 
-    st.markdown("$\mu$: Mean value for the equation")
-    st.markdown("$\sigma$: Standard deviation value for the equation")
-    st.markdown("$n$: Order value for the equation")
-    
-    
-    
+plot_equation(mu, sigma, n, number_points, degrees)

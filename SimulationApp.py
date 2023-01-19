@@ -114,7 +114,7 @@ for i in range(number_windows):
     p.circle(x_temp[::15], y_temp[::15], size = 4, color = bokeh.palettes.Viridis256[count*color_multiplier], alpha = 1)
     count += 1
 p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
-p.line(integration_axis, integration_points, line_width = 2, color = '#FAA0A0', alpha = 0.3)
+p.line(integration_axis, integration_points, line_width = 3, color = '#FAA0A0', alpha = 0.8)
 
 st.bokeh_chart(p)
 

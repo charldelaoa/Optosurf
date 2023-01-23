@@ -1,7 +1,7 @@
 import streamlit as st
 import bokeh
 from bokeh.plotting import figure, show
-from bokeh.models import Rect
+from bokeh.models import Rect, LinearColorMapper, BasicTicker, ColorBar, HoverTool
 import numpy as np
 
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
@@ -94,7 +94,7 @@ def window_integration(number_windows, window_size, x, y, p):
         
         x_temp = x[a:b-gap:1]
         y_temp = y[a:b-gap:1]
-        integration = np.trapz(y_temp, x_temp)
+        integration = np.trapz(y_temp, x_temp, dx = x[1] - x[0])
         integration_points.append(integration)
 
         axis = x_temp[len(x_temp)//2]
@@ -146,6 +146,7 @@ st.bokeh_chart(p)
 
 
 # 4. Plot for different mean values
+
 # a. Define np linear arrays for mean and standard deviation
 mean_points = st.sidebar.number_input("Number of points for mu value: ", 1, 50, 31)
 mean_np = np.linspace(-15, 15, mean_points)
@@ -162,7 +163,19 @@ for i, row in enumerate(X):
         stand_dev = Y[i, j]
         product_grid[i, j] = mean * stand_dev
         # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
-product_grid
+# product_grid
 
+# d. Plot grid
+color_mapper = LinearColorMapper(palette="Viridis256", low=-75, high=75)
+grid = figure(title="product_grid")
 
+# Add the image to the figure
+hover = HoverTool(tooltips=[("index", "$index"),("(x,y)", "($x, $y)"), ("Intensity", "@image{0.00}")])
+grid.add_tools(hover)
+grid.image(image=[product_grid], x=0, y=0, dw=1, dh=1, color_mapper=color_mapper)
+color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
+                     location=(0,0))
+grid.add_layout(color_bar, 'right')
 
+st.bokeh_chart(grid)
+st.write(np.min(product_grid))

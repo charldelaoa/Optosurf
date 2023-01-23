@@ -3,6 +3,7 @@ import bokeh
 from bokeh.plotting import figure, show
 from bokeh.models import Rect, LinearColorMapper, BasicTicker, ColorBar, HoverTool
 import numpy as np
+import matplotlib.pyplot as plt 
 
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
 
@@ -109,9 +110,9 @@ def window_integration(number_windows, window_size, x, y, p):
         count += 1
     p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
     p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
-    return p
+    return p, integration_axis, integration_points
 
-# 1. Define the default values for the slider variables
+# %% 1. Define the default values for the slider variables
 st.title("Super-Gaussian Equation Plotter plots")
 st.title("\n $y = e^{-((x-\mu)/\sigma)^n}$")
 
@@ -136,46 +137,105 @@ with expander_i:
 st.sidebar.title("Report parameters")
 
 
-# 2. Plot gaussian equation
+# %% 2. Plot gaussian equation
+"""
+x(np): linspace for the gaussian plot
+y(np): gaussian values
+"""
 p, x, y = plot_equation(mu, sigma, n, number_points, degrees)
 
 
-# 3. Compute window integration
-p = window_integration(number_windows, window_size, x, y, p)
+# %% 3. Compute window integration
+p, int_axis, int_points = window_integration(number_windows, window_size, x, y, p)
 st.bokeh_chart(p)
+
+
+# %% 4.ß Make a 2D histogram reconstruction
+normalized_y = np.multiply(int_points, 100000)
+normalized_y
+hist_2d = np.array([])
+
+for i, int_point in enumerate(normalized_y):
+    st.write('i', i)
+    st.write('int_point', int_point)
+    hist_2d = np.concatenate((hist_2d, np.array([float(int_point)]*i)))
+    # hist_2d
+
+unique_values, counts = np.unique(hist_2d, return_counts=True)
+
+# Print the unique values and their occurrences
+for value, count in zip(unique_values, counts):
+    st.write(f'Value: {value}, Occurrences: {count}')
+
+# Create a histogram of hist_2d
+# Plot histogram
+hist_plot = figure(title = "Histogram")
+hist, edges = np.histogram(hist_2d, bins = 50)
+
+hist_plot.quad(bottom=0, top=hist, left= edges[:-1], right=edges[1:], 
+                fill_color='blue', line_color = 'white')
+
+st.bokeh_chart(hist_plot)
+
+# %%
+print("Hello world")
+
+
+# hist_2d = []
+# for i, int_point in enumerate(normalized_y):
+#     hist_2d.extend([float(int_point)]*i)
+# hist_2d
+
+
+# Here's a code snippet from my Labview:
+
+# c=[];
+    # for indx2=1:32
+    #     c=[c;indx2*ones(x),1)];
+    # end
+# stddev=std(c);
+
+# where 'hout' is a 32 element vector with the Y values and 'c' becomes a 'histogram vector'. Y values went up to about 1500, so I didn't need to renormalise them. If you multiply your Y values (which go up to 1) by 1000, then you should be ok.
+
+
+
+
+
 
 
 # 4. Plot for different mean values
 
-# a. Define np linear arrays for mean and standard deviation
-mean_points = st.sidebar.number_input("Number of points for mu value: ", 1, 50, 31)
-mean_np = np.linspace(-15, 15, mean_points)
-stand_dev_points = st.sidebar.number_input("Number of points for standard deviation value: ", 1, 101, 50)
-stand_dev_np = np.linspace(0.1, 5, stand_dev_points)
+# # a. Define np linear arrays for mean and standard deviation
+# mean_points = st.sidebar.number_input("Number of points for mu value: ", 1, 50, 31)
+# mean_np = np.linspace(-15, 15, mean_points)
+# stand_dev_points = st.sidebar.number_input("Number of points for standard deviation value: ", 1, 101, 50)
+# stand_dev_np = np.linspace(0.1, 5, stand_dev_points)
 
-# b. Create a meshgrid
-X, Y = np.meshgrid(mean_np, stand_dev_np)
-product_grid = np.empty_like(X)
+# # b. Create a meshgrid
+# X, Y = np.meshgrid(mean_np, stand_dev_np)
+# product_grid = np.empty_like(X)
 
-# c. Iterate over grid
-for i, row in enumerate(X):
-    for j, mean in enumerate(row):
-        stand_dev = Y[i, j]
-        product_grid[i, j] = mean * stand_dev
-        # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
-# product_grid
+# # c. Iterate over grid
+# for i, row in enumerate(X):
+#     for j, mean in enumerate(row):
+#         stand_dev = Y[i, j]
+#         product_grid[i, j] = mean * stand_dev
+#         # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
+# # product_grid
 
-# d. Plot grid
-color_mapper = LinearColorMapper(palette="Viridis256", low=-75, high=75)
-grid = figure(title="product_grid")
+# # d. Plot grid
+# color_mapper = LinearColorMapper(palette="Viridis256", low=-75, high=75)
+# grid = figure(title="product_grid")
 
-# Add the image to the figure
-hover = HoverTool(tooltips=[("index", "$index"),("(x,y)", "($x, $y)"), ("Intensity", "@image{0.00}")])
-grid.add_tools(hover)
-grid.image(image=[product_grid], x=0, y=0, dw=1, dh=1, color_mapper=color_mapper)
-color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
-                     location=(0,0))
-grid.add_layout(color_bar, 'right')
+# # Add the image to the figure
+# hover = HoverTool(tooltips=[("index", "$index"),("(x,y)", "($x, $y)"), ("Intensity", "@image{0.00}")])
+# grid.add_tools(hover)
+# grid.image(image=[product_grid], x=-15, y=0, dw=30, dh=5, color_mapper=color_mapper)
+# color_bar = ColorBar(color_mapper=color_mapper, ticker= BasicTicker(),
+#                      location=(0,0))
+# grid.add_layout(color_bar, 'right')
+# grid = plot_format(grid, "Mean", "Standard Deviation", "bottom_left", "10pt", "10pt", "10pt")
+# st.bokeh_chart(grid)
+# st.write(np.min(product_grid))
 
-st.bokeh_chart(grid)
-st.write(np.min(product_grid))
+# %%

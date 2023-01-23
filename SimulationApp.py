@@ -65,7 +65,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
     return p, x, y
 
 # 1. Define the default values for the variables
-st.title("Super-Gaussian Equation Plotter plots branch")
+st.title("Super-Gaussian Equation Plotter plots v")
 st.title("\n $y = e^{-((x-\mu)/\sigma)^n}$")
 
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)

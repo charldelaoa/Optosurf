@@ -1,7 +1,7 @@
 import streamlit as st
 import bokeh
 from bokeh.plotting import figure, curdoc
-from bokeh.models import Rect, LinearColorMapper, BasicTicker, ColorBar, HoverTool
+from bokeh.models import Rect, LinearColorMapper, SingleIntervalTicker, LinearAxis, Grid
 import numpy as np
 import matplotlib.pyplot as plt 
 import plotly.graph_objects as go
@@ -37,6 +37,20 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
     # Title format
     plot.title.text_font_size = titlesize
+
+    plot.background_fill_color = "#0E1117"
+    plot.border_fill_color = "#0E1117"
+
+    plot.xgrid.grid_line_color = '#2D3135'
+    plot.ygrid.grid_line_color = '#2D3135'
+    
+    plot.yaxis.major_label_text_color = "#E3F4FF"
+    plot.xaxis.major_label_text_color = "#E3F4FF"
+    plot.yaxis.axis_label_text_color = "#E3F4FF"
+    plot.xaxis.axis_label_text_color = "#E3F4FF"
+    plot.title.text_color = "#A6DDFF"
+    plot.title.text_font_style = "bold"
+    plot.title.text_font_size = "15pt"
     return plot
 
 
@@ -59,17 +73,19 @@ def plot_equation(mu, sigma, n, number_points, degrees):
     y(np): gaussian values
     """
     # 1. Define linear degrees vector and calculate Super-Gaussian
+    ticker = SingleIntervalTicker(interval=2.5, num_minor_ticks=10)
+    xaxis = LinearAxis(ticker = ticker)
     x = np.linspace(degrees[0], degrees[1], number_points)
     y = np.exp(-((x-mu)/sigma)**n)
     
     # 2. Plot 
     TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
-    
     p = figure(title="Super-Gaussian", x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
         width = 710, height = 500)
     p.line(x, y, line_width=4, alpha = 0.5)
+    p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
     p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
-    p.background_fill_color = "#0E1117"
+
     return p, x, y
 
 
@@ -109,8 +125,8 @@ def window_integration(number_windows, window_size, x, y, p):
         # 2. Draw a rectangle of the integration window
         left_edge = x_temp[0]
         right_edge = x_temp[-1]
-        p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='green', color='green')
-        p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='red', color = 'red')
+        p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
+        p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
         p.circle(x_temp[::15], y_temp[::15], size = 4, color = bokeh.palettes.Viridis256[count*color_multiplier], alpha = 1)
         count += 1
     p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
@@ -140,23 +156,19 @@ def histogram_reconstruction(int_points):
         hist_2d = np.concatenate((hist_2d, np.array([float(i)]*round_int_point)))
     
     # b. Plot histogram
-    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar().encode(
+    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar(opacity=0.7, color='#A6DD9A').encode(
     alt.X('x:Q', bin=alt.Bin(maxbins=20)),
     y='count()')
     stddev = np.std(hist_2d)
     title = f'Standard deviation: {stddev}'
     hist_plot = hist_plot.properties(title=title)
-
-
-
     return hist_plot, np.std(stddev)
 
 
 
 
 # %% 1. Define the default values for the slider variables
-st.title("Super-Gaussian Equation Plotter plots")
-st.title("\n $y = e^{-((x-\mu)/\sigma)^n}$")
+st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
 
 # a. Gaussian parameters
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)

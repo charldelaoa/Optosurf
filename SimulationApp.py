@@ -79,7 +79,8 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
     ticker = SingleIntervalTicker(interval=2.5, num_minor_ticks=10)
     xaxis = LinearAxis(ticker = ticker)
     x = np.linspace(degrees[0], degrees[1], number_points)
-    y = np.exp(-((x-mu)/sigma)**n)
+    # y = np.exp(-((x-mu)/sigma)**n)
+    y = np.exp(-abs(((x-mu)/sigma))**n)
     
     # 2. Plot 
     if plot:
@@ -93,44 +94,8 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
     else:
         return x, y
 
-def window_integration_no_plot(number_windows, window_size, x, y):
-    """
-    Performs a window integration
-
-    Parameters
-    ----------
-    number_windows (int): Number of integration windows
-    window_size (int): Number of data points in the window
-    x(np): linspace for the gaussian plot
-    y(np): gaussian values
-    Returns
-    -------
-    integration_axis (np): window integration axis
-    integration_points (np): Integrated points
-    """
-    integration_points = []
-    integration_axis = []
-    color_multiplier = len(bokeh.palettes.Viridis256)//number_windows
-    count = 0
-    
-    for i in range(number_windows):
-    # 1. Get data in every window and integrate
-        a = i*window_size
-        b = i*window_size + window_size
-        
-        x_temp = x[a:b-gap:1]
-        y_temp = y[a:b-gap:1]
-        integration = np.trapz(y_temp, x_temp, dx = x[1] - x[0])
-        integration_points.append(integration)
-
-        axis = x_temp[len(x_temp)//2]
-        integration_axis.append(axis)
-
-        # 2. Draw a rectangle of the integration window
-    return integration_axis, integration_points
-
 # Create a function to do the window integration
-def window_integration(number_windows, window_size, x, y, p):
+def window_integration(number_windows, window_size, x, y, p=None):
     """
     Performs a window integration
 
@@ -165,19 +130,21 @@ def window_integration(number_windows, window_size, x, y, p):
         integration_axis.append(axis)
 
         # 2. Draw a rectangle of the integration window
-        left_edge = x_temp[0]
-        right_edge = x_temp[-1]
-        p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
-        p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
-        p.circle(x_temp[::15], y_temp[::15], size = 4, color = bokeh.palettes.Viridis256[count*color_multiplier], alpha = 1)
-        count += 1
-    p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
-    p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
+        if p is not None:
+            left_edge = x_temp[0]
+            right_edge = x_temp[-1]
+            p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
+            p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
+            p.circle(x_temp[::15], y_temp[::15], size = 4, alpha = 1)
+            count += 1
+    if p is not None:
+        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
+        p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
     return p, integration_axis, integration_points
 
 
 # Create a function to do histogram reconstruction
-def histogram_reconstruction(int_points):
+def histogram_reconstruction(int_points, hist_bool):
     """
     Constructs a histrogram
 
@@ -197,14 +164,21 @@ def histogram_reconstruction(int_points):
         round_int_point = round(float(int_point))
         hist_2d = np.concatenate((hist_2d, np.array([float(i)]*round_int_point)))
     
-    # b. Plot histogram
-    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar(opacity=0.7, color='#2D908C').encode(
-    alt.X('x:Q', bin=alt.Bin(maxbins=20)),
-    y='count()')
+    # b. Calculate standard deviation
     stddev = np.std(hist_2d)
-    title = f'Standard deviation: {stddev}'
-    hist_plot = hist_plot.properties(title=title)
-    return hist_plot, np.std(stddev)
+    
+    # c. Plot histogram
+    if hist_bool:
+        hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar(opacity=0.7, color='#2D908C').encode(
+        alt.X('x:Q', bin=alt.Bin(maxbins=20)),
+        y='count()', 
+        tooltip=['x','count()'])
+        title = f'Standard deviation: {stddev}'
+        hist_plot = hist_plot.properties(title=title)
+        return hist_plot, np.std(stddev)
+
+    else:
+        return stddev
 
 
 # %% 1. Define the default values for the slider variables
@@ -216,7 +190,7 @@ expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)
     sigma = st.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
-    n = st.slider("Order", 2, 10, 2, 2)
+    n = st.slider("Order", 0.0, 10.0, 1.0, 0.5)
     number_points = st.slider("Number of points", 0, 100000, 50000, 500)
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
 
@@ -231,22 +205,26 @@ with expander_i:
 
 # c. Standard deviation parameters
 st.sidebar.title("Standard deviation parameters")
-expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
-with expander_r:
-    mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-15.0, 15.0))
-    mu_step = st.number_input("Input the mu step", 0.0, 10.0, 1.0)
-    std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (0.1, 5.0))
-    std_step = st.number_input("Input the standard deviation step", 0.0, 5.0, 1.0)
-    mu_points = (mu_range[1] - mu_range[0])//mu_step
-    std_points = (std_range[1] - std_range[0])/std_step
-    gaussian_grid_boolean = st.checkbox("Plot Gaussian grid", False)
-    if not gaussian_grid_boolean:
-        mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
-        std_np = np.linspace(std_range[0], std_range[1], int(std_points)+1)
-    else:
-        mu_np = np.linspace(mu_range[0], mu_range[1], 6)
-        std_np = np.linspace(std_range[0], std_range[1], 5)
+matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", False)
 
+if matrix_bool:
+    expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
+    with expander_r:
+        mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-5.0, 5.0))
+        mu_step = st.number_input("Input the mu step", 0.0, 10.0, 0.1)
+        std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (1.5, 1.5))
+        std_step = st.number_input("Input the standard deviation step", 0.0, 5.0, 1.0)
+        mu_points = (mu_range[1] - mu_range[0])//mu_step
+        std_points = (std_range[1] - std_range[0])/std_step
+        gaussian_grid_boolean = st.checkbox("Plot Gaussian grid", False)
+        if not gaussian_grid_boolean:
+            mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
+            std_np = np.linspace(std_range[0], std_range[1], int(std_points)+1)
+        else:
+            mu_np = np.linspace(mu_range[0], mu_range[1], 6)
+            std_np = np.linspace(std_range[0], std_range[1], 6)
+        st.write('mu array size', len(mu_np))
+        st.write('std array size', len(std_np))
 
 # %% 2. Plot gaussian equation
 # x(np): linspace for the gaussian plot
@@ -260,7 +238,7 @@ p, int_axis, int_points = window_integration(number_windows, window_size, x, y, 
 
 # %% 4. Make a 2D histogram reconstruction
 # a. Histogram reconstruction
-hist_plot, std_dev = histogram_reconstruction(int_points)
+hist_plot, std_dev = histogram_reconstruction(int_points, True)
 
 
 # %% 5. Plot column layout
@@ -278,27 +256,44 @@ with col2:
 # %% 6. Standard deviation 2D plot
 
 # a. Create a grid with the input mu and std_dev
-X, Y = np.meshgrid(mu_np, std_np)
-std_grid = np.empty_like(X)
-st.write(std_grid.shape)
-plots_gaussian = []
 
-# Iterates mu and standard deviation
-for i in range(len(mu_np)):
-    for j in range(len(std_np)):
-        # Generate x and y Gaussian data points 
-        if gaussian_grid_boolean:
-            title = f"mu: {mu_np[i]:.3f}, std: {std_np[j]:.3f}"
-            plot, x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, True, title, 250, 250)
-            plot.title.text_font_size = "10pt"
-            plots_gaussian.append(plot)
-        else:
-            x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, False)
+if matrix_bool:
+    X, Y = np.meshgrid(mu_np, std_np)
+    std_grid = np.empty_like(X)
+    st.write(std_grid.shape)
+    plots_gaussian = []
+    plots_histogram = []
+    # Iterates mu and standard deviation
+    for i in range(len(mu_np)):
+        for j in range(len(std_np)):
+            # Generate x and y Gaussian data points 
+            if gaussian_grid_boolean:
+                title = f"mu: {mu_np[i]:.3f}, std: {std_np[j]:.3f}"
+                plot, x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, True, title, 250, 250)
+                plot.title.text_font_size = "10pt"
+                plot, int_axis, int_points = window_integration(number_windows, window_size, x, y, plot)
+                plots_gaussian.append(plot)
+            else:
+                # st.write(f"mu: {mu_np[i]}, std: {std_np[j]}")
+                x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, False)
+                p, int_axis, int_points = window_integration(number_windows, window_size, x, y)
+            std_grid[j, i] = std_dev = histogram_reconstruction(int_points, False)
+            
+    if gaussian_grid_boolean:
+        grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
+        st.bokeh_chart(grid_gaussian)
 
-if gaussian_grid_boolean:
-    grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
-    st.bokeh_chart(grid_gaussian)
+    source = pd.DataFrame({'mu': X.ravel(),
+                        'std': Y.ravel(),
+                        'value': std_grid.ravel()})
 
+    intensity_plot = alt.Chart(source).mark_rect().encode(
+        x='mu:O',
+        y='std:O',
+        color='value:Q',
+        tooltip='value')
+    intensity_plot = intensity_plot.properties(width = 1300, height = 850)
+    st.altair_chart(intensity_plot)
 # for i in range(len(mu_np)):
 #     for j in range(len(std_np)):
 #         # Calculate Gaussian
@@ -407,3 +402,12 @@ if gaussian_grid_boolean:
 # st.write(np.min(product_grid))
 
 # %%
+# In simulation i am generating 32 points
+# make fit to pink data using gaussian function, will you get same parameters
+# 1. From the pink data fit to gaussian and measure std deviation
+# 2. Make a cubic spline interpolation of the pink data
+# when we made sigma bigger there were more data points in pink data, the mu made no difference
+# when there more data points 
+# fewer data points it went bad, make more inter
+# make interpolation to a new axis (0.1 degree),
+# 

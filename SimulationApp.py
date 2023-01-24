@@ -93,6 +93,41 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
     else:
         return x, y
 
+def window_integration_no_plot(number_windows, window_size, x, y):
+    """
+    Performs a window integration
+
+    Parameters
+    ----------
+    number_windows (int): Number of integration windows
+    window_size (int): Number of data points in the window
+    x(np): linspace for the gaussian plot
+    y(np): gaussian values
+    Returns
+    -------
+    integration_axis (np): window integration axis
+    integration_points (np): Integrated points
+    """
+    integration_points = []
+    integration_axis = []
+    color_multiplier = len(bokeh.palettes.Viridis256)//number_windows
+    count = 0
+    
+    for i in range(number_windows):
+    # 1. Get data in every window and integrate
+        a = i*window_size
+        b = i*window_size + window_size
+        
+        x_temp = x[a:b-gap:1]
+        y_temp = y[a:b-gap:1]
+        integration = np.trapz(y_temp, x_temp, dx = x[1] - x[0])
+        integration_points.append(integration)
+
+        axis = x_temp[len(x_temp)//2]
+        integration_axis.append(axis)
+
+        # 2. Draw a rectangle of the integration window
+    return integration_axis, integration_points
 
 # Create a function to do the window integration
 def window_integration(number_windows, window_size, x, y, p):
@@ -108,6 +143,8 @@ def window_integration(number_windows, window_size, x, y, p):
     Returns
     -------
     p (bokeh plot): Plot of the integration
+    integration_axis (np): window integration axis
+    integration_points (np): Integrated points
     """
     integration_points = []
     integration_axis = []
@@ -240,17 +277,16 @@ with col2:
 
 # %% 6. Standard deviation 2D plot
 
-# a. Select the mu and standard deviation parameters to modify
-
-
-# b. Create a grid with the input mu and std_dev
+# a. Create a grid with the input mu and std_dev
 X, Y = np.meshgrid(mu_np, std_np)
 std_grid = np.empty_like(X)
 st.write(std_grid.shape)
 plots_gaussian = []
 
+# Iterates mu and standard deviation
 for i in range(len(mu_np)):
     for j in range(len(std_np)):
+        # Generate x and y Gaussian data points 
         if gaussian_grid_boolean:
             title = f"mu: {mu_np[i]:.3f}, std: {std_np[j]:.3f}"
             plot, x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, True, title, 250, 250)
@@ -262,6 +298,7 @@ for i in range(len(mu_np)):
 if gaussian_grid_boolean:
     grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
     st.bokeh_chart(grid_gaussian)
+
 # for i in range(len(mu_np)):
 #     for j in range(len(std_np)):
 #         # Calculate Gaussian

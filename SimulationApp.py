@@ -171,6 +171,7 @@ def histogram_reconstruction(int_points):
 st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
 
 # a. Streamlit sliders -Gaussian parameters
+st.sidebar.title("Gaussian parameters")
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)
@@ -180,6 +181,7 @@ with expander_g:
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
 
 # b. Integration parameters
+st.sidebar.title("Integration parameters")
 expander_i = st.sidebar.expander("Integration parameters", expanded = True)
 with expander_i:
     number_windows = st.slider("Number of windows", 1, 100, 32, 1)
@@ -187,8 +189,6 @@ with expander_i:
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 
-# c. Report parameters
-st.sidebar.title("Report parameters")
 
 
 # %% 2. Plot gaussian equation
@@ -218,11 +218,35 @@ with col2:
     st.altair_chart(hist_plot, use_container_width=True)
 
 
+# %% 6. Standard deviation 2D plot
 
+# a. Select the mu and standard deviation parameters to modify
+st.sidebar.title("Standard deviation parameters")
+expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
+with expander_r:
+    mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-15.0, 15.0))
+    mu_step = st.number_input("Input the mu step", 0.1)
+    std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (0.1, 5.0))
+    std_step = st.number_input("Input the standard deviation step", 0.1)
+    mu_points = (mu_range[1] - mu_range[0])//mu_step
+    mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
+    std_points = (std_range[1] - std_range[0])//std_step
+    std_np = np.linspace(std_range[0], std_range[1], int(std_points))
 
+# b. Create a grid with the input mu and std_dev
+X, Y = np.meshgrid(mu_np, std_np)
+std_grid = np.empty_like(X)
 
-
-
+# c. Iterate over grid
+# for i, row in enumerate(X):
+#     for j, mean in enumerate(row):
+#         stand_dev = Y[i, j]
+#         product_grid[i, j] = mean * stand_dev
+#         # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
+# # product_grid
+for i, row in enumerate(X):
+    st.write(f'i: {i}')
+    X[i]
 
 
 
@@ -284,16 +308,7 @@ with col2:
 # stand_dev_np = np.linspace(0.1, 5, stand_dev_points)
 
 # # b. Create a meshgrid
-# X, Y = np.meshgrid(mean_np, stand_dev_np)
-# product_grid = np.empty_like(X)
 
-# # c. Iterate over grid
-# for i, row in enumerate(X):
-#     for j, mean in enumerate(row):
-#         stand_dev = Y[i, j]
-#         product_grid[i, j] = mean * stand_dev
-#         # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
-# # product_grid
 
 # # d. Plot grid
 # color_mapper = LinearColorMapper(palette="Viridis256", low=-75, high=75)

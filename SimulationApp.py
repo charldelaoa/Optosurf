@@ -1,9 +1,12 @@
 import streamlit as st
 import bokeh
-from bokeh.plotting import figure, show
+from bokeh.plotting import figure, curdoc
 from bokeh.models import Rect, LinearColorMapper, BasicTicker, ColorBar, HoverTool
 import numpy as np
 import matplotlib.pyplot as plt 
+import plotly.graph_objects as go
+import altair as alt
+import pandas as pd
 
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
 
@@ -61,6 +64,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
     
     # 2. Plot 
     TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
+    
     p = figure(title="Super-Gaussian", x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
         width = 710, height = 500)
     p.line(x, y, line_width=4, alpha = 0.5)
@@ -128,18 +132,23 @@ def histogram_reconstruction(int_points):
     """
     
     # a. Histogram reconstruction
-    normalized_y = np.multiply(int_points, 1000)
+    normalized_y = np.multiply(int_points, 10000)
     hist_2d = np.array([])
     for i, int_point in enumerate(normalized_y):
         round_int_point = round(float(int_point))
         hist_2d = np.concatenate((hist_2d, np.array([float(i)]*round_int_point)))
     
     # b. Plot histogram
-    hist_plot = figure(title = "Histogram")
-    hist, edges = np.histogram(hist_2d, bins = 20)
-    hist_plot.quad(bottom=0, top=hist, left= edges[:-1], right=edges[1:], 
-                    fill_color='blue', line_color = 'white')
-    return hist_plot, np.std(hist_2d)
+    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar().encode(
+    alt.X('x:Q', bin=alt.Bin(maxbins=20)),
+    y='count()')
+    stddev = np.std(hist_2d)
+    title = f'Standard deviation: {stddev}'
+    hist_plot = hist_plot.properties(title=title)
+
+
+
+    return hist_plot, np.std(stddev)
 
 
 
@@ -190,8 +199,10 @@ with col1:
     st.bokeh_chart(p)
 
 with col2:
-    st.bokeh_chart(hist_plot)
+    hist_plot.width = 500
+    hist_plot.height = 550
 
+    st.altair_chart(hist_plot, use_container_width=True)
 
 
 

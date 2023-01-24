@@ -69,6 +69,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
         width = 710, height = 500)
     p.line(x, y, line_width=4, alpha = 0.5)
     p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
+    p.background_fill_color = "#0E1117"
     return p, x, y
 
 

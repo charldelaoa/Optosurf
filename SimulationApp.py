@@ -62,7 +62,7 @@ def plot_equation(mu, sigma, n, number_points, degrees):
     # 2. Plot 
     TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
     p = figure(title="Super-Gaussian", x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
-        width = 1000, height = 550)
+        width = 710, height = 500)
     p.line(x, y, line_width=4, alpha = 0.5)
     p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
     return p, x, y
@@ -112,6 +112,38 @@ def window_integration(number_windows, window_size, x, y, p):
     p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
     return p, integration_axis, integration_points
 
+
+# Create a function to do histogram reconstruction
+def histogram_reconstruction(int_points):
+    """
+    Constructs a histrogram
+
+    Parameters
+    ----------
+    int_points(np): Points calculated from the window integration
+    Returns
+    -------
+    hist_plot (bokeh plot): Plot of the histogram
+    std_dev(float): Histogram's standard deviation
+    """
+    
+    # a. Histogram reconstruction
+    normalized_y = np.multiply(int_points, 1000)
+    hist_2d = np.array([])
+    for i, int_point in enumerate(normalized_y):
+        round_int_point = round(float(int_point))
+        hist_2d = np.concatenate((hist_2d, np.array([float(i)]*round_int_point)))
+    
+    # b. Plot histogram
+    hist_plot = figure(title = "Histogram")
+    hist, edges = np.histogram(hist_2d, bins = 20)
+    hist_plot.quad(bottom=0, top=hist, left= edges[:-1], right=edges[1:], 
+                    fill_color='blue', line_color = 'white')
+    return hist_plot, np.std(hist_2d)
+
+
+
+
 # %% 1. Define the default values for the slider variables
 st.title("Super-Gaussian Equation Plotter plots")
 st.title("\n $y = e^{-((x-\mu)/\sigma)^n}$")
@@ -138,48 +170,64 @@ st.sidebar.title("Report parameters")
 
 
 # %% 2. Plot gaussian equation
-"""
-x(np): linspace for the gaussian plot
-y(np): gaussian values
-"""
+# x(np): linspace for the gaussian plot
+# y(np): gaussian values
 p, x, y = plot_equation(mu, sigma, n, number_points, degrees)
 
 
 # %% 3. Compute window integration
 p, int_axis, int_points = window_integration(number_windows, window_size, x, y, p)
-st.bokeh_chart(p)
 
 
-# %% 4.ß Make a 2D histogram reconstruction
-normalized_y = np.multiply(int_points, 100000)
-normalized_y
-hist_2d = np.array([])
+# %% 4. Make a 2D histogram reconstruction
+# a. Histogram reconstruction
+hist_plot, std_dev = histogram_reconstruction(int_points)
 
-for i, int_point in enumerate(normalized_y):
-    st.write('i', i)
-    st.write('int_point', int_point)
-    hist_2d = np.concatenate((hist_2d, np.array([float(int_point)]*i)))
-    # hist_2d
 
-unique_values, counts = np.unique(hist_2d, return_counts=True)
+# %% 5. Plot column layout
+col1, col2 = st.columns(2)
+with col1:
+    st.bokeh_chart(p)
 
+with col2:
+    st.bokeh_chart(hist_plot)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# normalized_y = np.multiply(int_points, 100000)
+# hist_2d = np.array([])
+
+# for i, int_point in enumerate(normalized_y):
+#     round_int_point = round(float(int_point))
+#     hist_2d = np.concatenate((hist_2d, np.array([i]*round_int_point)))
+
+# # b. Plot histogram
+# hist_plot = figure(title = "Histogram")
+# hist, edges = np.histogram(hist_2d, bins = 20)
+
+# hist_plot.quad(bottom=0, top=hist, left= edges[:-1], right=edges[1:], 
+#                 fill_color='blue', line_color = 'white')
+
+# st.write('Std deviation', np.std(hist_2d))
+
+#unique_values, counts = np.unique(hist_2d, return_counts=True)
 # Print the unique values and their occurrences
-for value, count in zip(unique_values, counts):
-    st.write(f'Value: {value}, Occurrences: {count}')
-
-# Create a histogram of hist_2d
-# Plot histogram
-hist_plot = figure(title = "Histogram")
-hist, edges = np.histogram(hist_2d, bins = 50)
-
-hist_plot.quad(bottom=0, top=hist, left= edges[:-1], right=edges[1:], 
-                fill_color='blue', line_color = 'white')
-
-st.bokeh_chart(hist_plot)
-
-# %%
-print("Hello world")
-
+# for value, count in zip(unique_values, counts):
+#     st.write(f'Value: {value}, Occurrences: {count}')
 
 # hist_2d = []
 # for i, int_point in enumerate(normalized_y):

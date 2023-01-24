@@ -225,28 +225,26 @@ st.sidebar.title("Standard deviation parameters")
 expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
 with expander_r:
     mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-15.0, 15.0))
-    mu_step = st.number_input("Input the mu step", 0.1)
+    mu_step = st.number_input("Input the mu step", 1)
     std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (0.1, 5.0))
-    std_step = st.number_input("Input the standard deviation step", 0.1)
+    std_step = st.number_input("Input the standard deviation step", 1)
     mu_points = (mu_range[1] - mu_range[0])//mu_step
     mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
-    std_points = (std_range[1] - std_range[0])//std_step
-    std_np = np.linspace(std_range[0], std_range[1], int(std_points))
+    std_points = (std_range[1] - std_range[0])/std_step
+    std_range[0]
+    std_range[1]
+    std_np = np.linspace(std_range[0], std_range[1], int(std_points)+1)
 
 # b. Create a grid with the input mu and std_dev
 X, Y = np.meshgrid(mu_np, std_np)
 std_grid = np.empty_like(X)
 
-# c. Iterate over grid
-# for i, row in enumerate(X):
-#     for j, mean in enumerate(row):
-#         stand_dev = Y[i, j]
-#         product_grid[i, j] = mean * stand_dev
-#         # st.write(f'mean: {mean}, standard deviation: {stand_dev}')
-# # product_grid
-for i, row in enumerate(X):
-    st.write(f'i: {i}')
-    X[i]
+for i in range(len(mu_np)):
+    for j in range(len(std_np)):
+        st.write(f"mu: {mu_np[i]}, std: {std_np[j]}")
+     
+
+    # X[i]
 
 
 

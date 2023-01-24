@@ -4,7 +4,6 @@ from bokeh.plotting import figure, curdoc
 from bokeh.models import Rect, LinearColorMapper, SingleIntervalTicker, LinearAxis, Grid
 from bokeh.layouts import gridplot
 import numpy as np
-import matplotlib.pyplot as plt 
 import plotly.graph_objects as go
 import altair as alt
 import pandas as pd

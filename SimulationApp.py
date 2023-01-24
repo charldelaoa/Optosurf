@@ -2,6 +2,7 @@ import streamlit as st
 import bokeh
 from bokeh.plotting import figure, curdoc
 from bokeh.models import Rect, LinearColorMapper, SingleIntervalTicker, LinearAxis, Grid
+from bokeh.layouts import gridplot
 import numpy as np
 import matplotlib.pyplot as plt 
 import plotly.graph_objects as go
@@ -54,8 +55,10 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     return plot
 
 
+
+
 # Create a function to plot the equation
-def plot_equation(mu, sigma, n, number_points, degrees):
+def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gaussian", width = 700, height = 550):
     """
     Plot the Super-Gaussian equation using Bokeh
 
@@ -79,14 +82,16 @@ def plot_equation(mu, sigma, n, number_points, degrees):
     y = np.exp(-((x-mu)/sigma)**n)
     
     # 2. Plot 
-    TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
-    p = figure(title="Super-Gaussian", x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
-        width = 710, height = 500)
-    p.line(x, y, line_width=4, alpha = 0.5)
-    p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
-    p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
-
-    return p, x, y
+    if plot:
+        TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
+        p = figure(title=title, x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
+            width = width, height = height)
+        p.line(x, y, line_width=4, alpha = 0.5)
+        p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
+        p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
+        return p, x, y
+    else:
+        return x, y
 
 
 # Create a function to do the window integration
@@ -156,15 +161,13 @@ def histogram_reconstruction(int_points):
         hist_2d = np.concatenate((hist_2d, np.array([float(i)]*round_int_point)))
     
     # b. Plot histogram
-    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar(opacity=0.7, color='#A6DD9A').encode(
+    hist_plot = alt.Chart(pd.DataFrame({'x': hist_2d})).mark_bar(opacity=0.7, color='#2D908C').encode(
     alt.X('x:Q', bin=alt.Bin(maxbins=20)),
     y='count()')
     stddev = np.std(hist_2d)
     title = f'Standard deviation: {stddev}'
     hist_plot = hist_plot.properties(title=title)
     return hist_plot, np.std(stddev)
-
-
 
 
 # %% 1. Define the default values for the slider variables
@@ -189,12 +192,29 @@ with expander_i:
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 
+# c. Standard deviation parameters
+st.sidebar.title("Standard deviation parameters")
+expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
+with expander_r:
+    mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-15.0, 15.0))
+    mu_step = st.number_input("Input the mu step", 0.0, 10.0, 1.0)
+    std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (0.1, 5.0))
+    std_step = st.number_input("Input the standard deviation step", 0.0, 5.0, 1.0)
+    mu_points = (mu_range[1] - mu_range[0])//mu_step
+    std_points = (std_range[1] - std_range[0])/std_step
+    gaussian_grid_boolean = st.checkbox("Plot Gaussian grid", False)
+    if not gaussian_grid_boolean:
+        mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
+        std_np = np.linspace(std_range[0], std_range[1], int(std_points)+1)
+    else:
+        mu_np = np.linspace(mu_range[0], mu_range[1], 6)
+        std_np = np.linspace(std_range[0], std_range[1], 5)
 
 
 # %% 2. Plot gaussian equation
 # x(np): linspace for the gaussian plot
 # y(np): gaussian values
-p, x, y = plot_equation(mu, sigma, n, number_points, degrees)
+p, x, y = plot_equation(mu, sigma, n, number_points, degrees, True)
 
 
 # %% 3. Compute window integration
@@ -221,28 +241,54 @@ with col2:
 # %% 6. Standard deviation 2D plot
 
 # a. Select the mu and standard deviation parameters to modify
-st.sidebar.title("Standard deviation parameters")
-expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
-with expander_r:
-    mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-15.0, 15.0))
-    mu_step = st.number_input("Input the mu step", 1)
-    std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (0.1, 5.0))
-    std_step = st.number_input("Input the standard deviation step", 1)
-    mu_points = (mu_range[1] - mu_range[0])//mu_step
-    mu_np = np.linspace(mu_range[0], mu_range[1], int(mu_points))
-    std_points = (std_range[1] - std_range[0])/std_step
-    std_range[0]
-    std_range[1]
-    std_np = np.linspace(std_range[0], std_range[1], int(std_points)+1)
+
 
 # b. Create a grid with the input mu and std_dev
 X, Y = np.meshgrid(mu_np, std_np)
 std_grid = np.empty_like(X)
+st.write(std_grid.shape)
+plots_gaussian = []
 
 for i in range(len(mu_np)):
     for j in range(len(std_np)):
-        st.write(f"mu: {mu_np[i]}, std: {std_np[j]}")
-     
+        if gaussian_grid_boolean:
+            title = f"mu: {mu_np[i]:.3f}, std: {std_np[j]:.3f}"
+            plot, x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, True, title, 250, 250)
+            plot.title.text_font_size = "10pt"
+            plots_gaussian.append(plot)
+        else:
+            x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, False)
+
+if gaussian_grid_boolean:
+    grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
+    st.bokeh_chart(grid_gaussian)
+# for i in range(len(mu_np)):
+#     for j in range(len(std_np)):
+#         # Calculate Gaussian
+#         x = np.linspace(degrees[0], degrees[1], number_points)
+#         y = np.exp(-((x-mu_np[i])/std_np[j])**n)
+#         integration_points = []
+#         integration_axis = []
+#         for z in range(number_windows):
+#             a = z*window_size
+#             b = z*window_size + window_size
+
+#             x_temp = x[a:b-gap:1]
+#             y_temp = y[a:b-gap:1]
+#             integration = np.trapz(y_temp, x_temp, dx = x[1] - x[0])
+#             integration_points.append(integration)
+
+#             axis = x_temp[len(x_temp)//2]
+#             integration_axis.append(axis)
+        # st.write('integration points', integration_points)
+        # st.write('integration axis', integration_axis)
+        # integration_axis
+        # std_grid[j,i] = i*j
+
+
+        # st.write(f"i: {i}, j: {j}")
+        # st.write(f"mu: {mu_np[i]}, std: {std_np[j]}")
+
 
     # X[i]
 

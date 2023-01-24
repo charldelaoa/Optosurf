@@ -170,7 +170,7 @@ def histogram_reconstruction(int_points):
 # %% 1. Define the default values for the slider variables
 st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
 
-# a. Gaussian parameters
+# a. Streamlit sliders -Gaussian parameters
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)

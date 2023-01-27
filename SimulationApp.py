@@ -188,7 +188,7 @@ expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)
     sigma = st.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
-    n = st.slider("Order", 0.0, 10.0, 1.0, 0.5)
+    n = st.slider("Order", 0.0, 10.0, 3.5, 0.5)
     number_points = st.slider("Number of points", 0, 100000, 50000, 500)
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
 
@@ -208,7 +208,7 @@ matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", False)
 if matrix_bool:
     expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
     with expander_r:
-        mu_range = st.slider("Select the median (mu) range", -30.0, 30.0, (-5.0, 5.0))
+        mu_range = st.slider("Select the median (mu) range", -15.0, 15.0, (-5.0, 5.0))
         mu_step = st.number_input("Input the mu step", 0.0, 10.0, 0.1)
         std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (1.5, 1.5))
         std_step = st.number_input("Input the standard deviation step", 0.0, 5.0, 1.0)
@@ -223,7 +223,6 @@ if matrix_bool:
             std_np = np.linspace(std_range[0], std_range[1], 6)
         st.write('mu array size', len(mu_np))
         st.write('std array size', len(std_np))
-
 # %% 2. Plot gaussian equation
 # x(np): linspace for the gaussian plot
 # y(np): gaussian values
@@ -254,13 +253,15 @@ with col2:
 # %% 6. Standard deviation 2D plot
 
 # a. Create a grid with the input mu and std_dev
-
 if matrix_bool:
     X, Y = np.meshgrid(mu_np, std_np)
     std_grid = np.empty_like(X)
     st.write(std_grid.shape)
     plots_gaussian = []
     plots_histogram = []
+    n
+    number_points
+    degrees
     # Iterates mu and standard deviation
     for i in range(len(mu_np)):
         for j in range(len(std_np)):
@@ -275,7 +276,7 @@ if matrix_bool:
                 # st.write(f"mu: {mu_np[i]}, std: {std_np[j]}")
                 x, y = plot_equation(mu_np[i], std_np[j], n, number_points, degrees, False)
                 p, int_axis, int_points = window_integration(number_windows, window_size, x, y)
-            std_grid[j, i] = std_dev = histogram_reconstruction(int_points, False)
+            std_grid[j, i]  = histogram_reconstruction(int_points, False)
             
     if gaussian_grid_boolean:
         grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)

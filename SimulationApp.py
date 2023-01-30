@@ -58,7 +58,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 
 # Create a function to plot the equation
-def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gaussian", width = 700, height = 550):
+def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Optical field sampling", width = 700, height = 550):
     """
     Plot the Super-Gaussian equation using Bokeh
 
@@ -86,7 +86,7 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
         TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
         p = figure(title=title, x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
             width = width, height = height)
-        p.line(x, y, line_width=4, alpha = 0.5, legend_label="Simulated gaussian", color='#C5E0B4')
+        p.line(x, y, line_width=4, alpha = 0.5, legend_label="Optical field", color='#C5E0B4')
         p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
         p = plot_format(p, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
         return p, x, y
@@ -135,10 +135,10 @@ def window_integration(number_windows, window_size, x, y, p=None):
             right_edge = x_temp[-1]
             p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
             p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
-            p.circle(x_temp[::15], y_temp[::15], size = 4, alpha = 1, legend_label="Gaussian with gaps")
+            p.circle(x_temp[::15], y_temp[::15], size = 4, alpha = 1, legend_label="Optical field with gaps")
             count += 1
     if p is not None:
-        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label="Integration points")
+        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label="Integrated/sampling points")
         p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
         p.legend.location = "top_left"
     return p, integration_axis, integration_points
@@ -182,6 +182,24 @@ def histogram_reconstruction(int_points, hist_bool):
         return stddev
 
 
+def calculate_fwhm(x, y):
+    """
+    Calculates fwhm
+
+    Parameters
+    ----------
+    x(np): x values
+    y(np): y values
+    Returns
+    -------
+    fwhm(float): fwhm
+    """
+    half_max = np.max(y) / 2
+    x_left = x[np.where(y >= half_max)[0][0]]
+    x_right = x[np.where(y >= half_max)[0][-1]]
+    return x_right - x_left
+
+
 def spline_interpolation(x, y, new_axis, width = 700, height = 550):
     """
     Calculates a spline interpolation of the sampled points 
@@ -198,24 +216,28 @@ def spline_interpolation(x, y, new_axis, width = 700, height = 550):
     TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
 
     interpolation_methods = [("Cubic spline", CubicSpline, '#C5E0B4'), 
-                            ("Akima", Akima1DInterpolator, '#FEEED9'),
                             ("Pchip", PchipInterpolator, '#EEDA89')]
-    
+                            #("Akima", Akima1DInterpolator, '#FEEED9')
     plots = [figure(width = 600, height = 400, tooltips = TOOLTIPS) for i in range(len(interpolation_methods))]
-    plots_histogram = [figure(width = 600, height = 400, tooltips = TOOLTIPS) for i in range(len(interpolation_methods))]
+    plots_hist = [figure(width = 600, height = 400, tooltips = TOOLTIPS) for i in range(len(interpolation_methods))]
     
     for i, (method, interp_func, color) in enumerate(interpolation_methods):
-        
         # a. Interpolate data  
         interp = interp_func(x, y)
         interp_points = interp(new_axis)
+        
+        # b. Calculate FWHM 
+        fwhm = calculate_fwhm(new_axis, interp_points)
+        # hist_plot, std_dev = histogram_reconstruction(interp_points, True)
+        
 
         # b. Plot the data
         plots[i].line(new_axis, interp_points, line_width=6, color= color)
         plots[i].circle(x, y, size=7, color='#FAA0A0')
-        plots[i].title = method
+        plots[i].title = f"Method: {method}; FWHM: {fwhm}"
         plots[i] = plot_format(plots[i], "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
-    return plots
+        plots_hist[i] = hist_plot
+    return plots, plots_hist
     
 
 def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
@@ -260,7 +282,7 @@ def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
 
 # %% 1. Define the default values for the slider variables
 st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
-
+st.markdown("## Optical field definition and window integration")
 # a. Streamlit sliders -Gaussian parameters
 st.sidebar.title("Gaussian parameters")
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
@@ -270,7 +292,7 @@ with expander_g:
     n = st.slider("Order", 0.0, 10.0, 3.5, 0.5)
     number_points = st.slider("Number of points", 0, 100000, 50000, 500)
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
-
+            
 # b. Integration parameters
 st.sidebar.title("Integration parameters")
 expander_i = st.sidebar.expander("Integration parameters", expanded = True)
@@ -280,17 +302,9 @@ with expander_i:
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 
-# c. Spline interpolation parameters
-st.sidebar.title("Spline interpolation parameters")
-expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
-with expander_s:
-    degrees_s = st.slider("Select spline degrees range", -30.0, 30.0, (-15.0, 15.0))
-    num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 10000)
-
-# d. Standard deviation parameters
-st.sidebar.title("Standard deviation parameters")
+# c. Standard deviation matrix parameters
+st.sidebar.title("Standard deviation matrix parameters")
 matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", True)
-
 if matrix_bool:
     expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
     with expander_r:
@@ -310,9 +324,13 @@ if matrix_bool:
         st.write('mu array size', len(mu_np))
         st.write('std array size', len(std_np))
 
-# d. Spline interpolation
-st.sidebar.title("Spline interpolations")
-spline_bool = st.sidebar.checkbox("Calculate spline interpolations", True)
+
+# d. Spline interpolation parameters
+st.sidebar.title("Spline interpolation parameters")
+expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
+with expander_s:
+    degrees_s = st.slider("Select spline degrees range", -30.0, 30.0, (-15.0, 15.0))
+    num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 1000)
 
 
 # %% 2. Plot gaussian equation
@@ -330,47 +348,58 @@ p, int_axis, int_points = window_integration(number_windows, window_size, x, y, 
 hist_plot, std_dev = histogram_reconstruction(int_points, True)
 
 
-# %% 5. Spline interpolation
-new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
-interp_plots = spline_interpolation(int_axis, int_points, new_axis)
-
-
-# %% 5. Plots
-# a. Window integration and histogram reconstruction
-col1, col2 = st.columns(2)
-with col1:
-    st.bokeh_chart(p)
-
-with col2:
-    hist_plot.width = 500
-    hist_plot.height = 550
-    st.altair_chart(hist_plot, use_container_width=True)
-
-# b. Spline interpolation plot
-st.title(f"Spline interpolation with {num_points_s} points")
-grid_interp = gridplot(children = interp_plots, ncols = 4, merge_tools=False)
-st.bokeh_chart(grid_interp)
-
-
-# %% 6. Standard deviation 2D plot
-# a. Create standard deviation matrix
+# %% 5. Create standard deviation matrix
 if matrix_bool:
-    std_grid, source, plots_gaussian =standard_matrix(mu_np, std_np, gaussian_grid_boolean)
+    std_grid, source, plots_gaussian = standard_matrix(mu_np, std_np, gaussian_grid_boolean)
 
     if gaussian_grid_boolean:
         grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
         st.bokeh_chart(grid_gaussian)
 
+
+# %% 6. Plot optical field, histograma and standard deviation matrix
+# a. Window integration and histogram reconstruction
+col1, col2 = st.columns(2)
+with col1:
+    st.bokeh_chart(p)
+    st.markdown("- The optical field is defined according to the equation $y = e^{-((x-\mu)/\sigma)^n}$ (green curve)")
+    st.markdown(f"- Sampling gaps are simulated (blue curve)")
+    st.markdown(f"- The pixel sampling is simulated by a window integration using {number_windows} windows (pink points)")
+
+with col2:
+    hist_plot.width = 500
+    hist_plot.height = 550
+    st.altair_chart(hist_plot, use_container_width=True)
+    st.markdown(f"- A histogram is reconstructed from the sampled 32 points")
+    st.markdown(f"- The standard deviation is then calculated")
+
+
 # b. Plot intensity plot
+if matrix_bool:
     st.title("Standard deviation matrix")
+    st.markdown("A standard deviation matrix is calculated by sweeping the parameters $\mu$ at a constant standard deviation $\sigma$")
+    st.markdown(f"The mu parameter is related to the angle of the incoming light and is swept from {mu_range[0]} to {mu_range[1]} with {mu_step} step")
+
     axis_range = np.arange(-5, 5.5, 0.5)
     intensity_plot = alt.Chart(source).mark_rect().encode(
         alt.X('mu:O', axis=alt.Axis(values=axis_range, format=".1f")),
         y='std:O',
         color='value:Q',
         tooltip='value')
-    intensity_plot = intensity_plot.properties(width = 800, height = 300)
+    intensity_plot = intensity_plot.properties(width = 800, height = 300, title=f"Sweep in mu parameter at a constant std deviation value of {std_range[0]}")
     st.altair_chart(intensity_plot, use_container_width=True)
+
+
+
+
+# %% 5. Spline interpolation
+new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
+interp_plots, hist_plots = spline_interpolation(int_axis, int_points, new_axis)
+
+# b. Spline interpolation plot
+st.title(f"Spline interpolation with {num_points_s} points")
+grid_interp = gridplot(children = interp_plots, ncols = 3, merge_tools=False)
+st.bokeh_chart(grid_interp)
 
 
 
@@ -390,3 +419,6 @@ if matrix_bool:
 #         plots.append(spline_plot)
         
 #     return plots
+
+# 1. Try to interpolate with less points and reconstruct histogram calc. std. deviation plot matrix
+# 2. Change angle axis from -5 to 5 and calculate parameters (HW solution)

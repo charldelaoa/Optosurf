@@ -6,7 +6,7 @@ from bokeh.layouts import gridplot
 import numpy as np
 import altair as alt
 import pandas as pd
-
+from scipy.interpolate import CubicSpline, PchipInterpolator, Akima1DInterpolator, BSpline
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
 
 
@@ -31,7 +31,9 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.legend.label_text_font_size = labelsize
     plot.legend.label_text_font_style = 'bold'
     plot.legend.border_line_width = 3
-    plot.legend.border_line_color = "navy"
+    plot.legend.background_fill_alpha = 0.0
+    plot.legend.label_text_color = "#E3F4FF"
+    # plot.legend.border_line_color = "navy"
     plot.legend.border_line_alpha = 0.5
 
     # Title format
@@ -50,6 +52,8 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.title.text_color = "#A6DDFF"
     plot.title.text_font_style = "bold"
     plot.title.text_font_size = "15pt"
+
+    plot.legend.click_policy="hide"
     return plot
 
 
@@ -75,7 +79,6 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
     ticker = SingleIntervalTicker(interval=2.5, num_minor_ticks=10)
     xaxis = LinearAxis(ticker = ticker)
     x = np.linspace(degrees[0], degrees[1], number_points)
-    # y = np.exp(-((x-mu)/sigma)**n)
     y = np.exp(-abs(((x-mu)/sigma))**n)
     
     # 2. Plot 
@@ -83,9 +86,9 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
         TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
         p = figure(title=title, x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
             width = width, height = height)
-        p.line(x, y, line_width=4, alpha = 0.5)
+        p.line(x, y, line_width=4, alpha = 0.5, legend_label="Simulated gaussian", color='#C5E0B4')
         p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
-        p = plot_format(p, "Degrees", "Intensity", "bottom_left", "10pt", "10pt", "10pt")
+        p = plot_format(p, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
         return p, x, y
     else:
         return x, y
@@ -132,11 +135,12 @@ def window_integration(number_windows, window_size, x, y, p=None):
             right_edge = x_temp[-1]
             p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
             p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
-            p.circle(x_temp[::15], y_temp[::15], size = 4, alpha = 1)
+            p.circle(x_temp[::15], y_temp[::15], size = 4, alpha = 1, legend_label="Gaussian with gaps")
             count += 1
     if p is not None:
-        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0')
+        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label="Integration points")
         p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
+        p.legend.location = "top_left"
     return p, integration_axis, integration_points
 
 
@@ -178,6 +182,42 @@ def histogram_reconstruction(int_points, hist_bool):
         return stddev
 
 
+def spline_interpolation(x, y, new_axis, width = 700, height = 550):
+    """
+    Calculates a spline interpolation of the sampled points 
+    by the window integration 
+
+    Parameters
+    ----------
+    mu_np(np): range to vary mu parameter of gaussian function
+    std_np(np): range of standard deviation to vary
+    Returns
+    -------
+    std_grid(np): standard deviation matrix
+    """
+    TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
+
+    interpolation_methods = [("Cubic spline", CubicSpline, '#C5E0B4'), 
+                            ("Akima", Akima1DInterpolator, '#FEEED9'),
+                            ("Pchip", PchipInterpolator, '#EEDA89')]
+    
+    plots = [figure(width = 600, height = 400, tooltips = TOOLTIPS) for i in range(len(interpolation_methods))]
+    plots_histogram = [figure(width = 600, height = 400, tooltips = TOOLTIPS) for i in range(len(interpolation_methods))]
+    
+    for i, (method, interp_func, color) in enumerate(interpolation_methods):
+        
+        # a. Interpolate data  
+        interp = interp_func(x, y)
+        interp_points = interp(new_axis)
+
+        # b. Plot the data
+        plots[i].line(new_axis, interp_points, line_width=6, color= color)
+        plots[i].circle(x, y, size=7, color='#FAA0A0')
+        plots[i].title = method
+        plots[i] = plot_format(plots[i], "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+    return plots
+    
+
 def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
     """
     Calculates the standard deviation of multiple histograms 
@@ -194,7 +234,6 @@ def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
     std_grid = np.empty_like(X)
     plots_gaussian = []
    
-
     for i in range(len(mu_np)):
         for j in range(len(std_np)):
             # Generate x and y Gaussian data points 
@@ -216,6 +255,9 @@ def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
 
     return std_grid, source, plots_gaussian
 
+
+
+
 # %% 1. Define the default values for the slider variables
 st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
 
@@ -224,7 +266,7 @@ st.sidebar.title("Gaussian parameters")
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)
-    sigma = st.slider("Standard Deviation", 0.1, 5.0, 1.0, 0.1)
+    sigma = st.slider("Standard Deviation", 0.1, 5.0, 1.3, 0.1)
     n = st.slider("Order", 0.0, 10.0, 3.5, 0.5)
     number_points = st.slider("Number of points", 0, 100000, 50000, 500)
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
@@ -238,9 +280,16 @@ with expander_i:
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 
-# c. Standard deviation parameters
+# c. Spline interpolation parameters
+st.sidebar.title("Spline interpolation parameters")
+expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
+with expander_s:
+    degrees_s = st.slider("Select spline degrees range", -30.0, 30.0, (-15.0, 15.0))
+    num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 10000)
+
+# d. Standard deviation parameters
 st.sidebar.title("Standard deviation parameters")
-matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", False)
+matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", True)
 
 if matrix_bool:
     expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
@@ -260,6 +309,12 @@ if matrix_bool:
             std_np = np.linspace(std_range[0], std_range[1], 6)
         st.write('mu array size', len(mu_np))
         st.write('std array size', len(std_np))
+
+# d. Spline interpolation
+st.sidebar.title("Spline interpolations")
+spline_bool = st.sidebar.checkbox("Calculate spline interpolations", True)
+
+
 # %% 2. Plot gaussian equation
 # x(np): linspace for the gaussian plot
 # y(np): gaussian values
@@ -275,7 +330,13 @@ p, int_axis, int_points = window_integration(number_windows, window_size, x, y, 
 hist_plot, std_dev = histogram_reconstruction(int_points, True)
 
 
-# %% 5. Plot column layout
+# %% 5. Spline interpolation
+new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
+interp_plots = spline_interpolation(int_axis, int_points, new_axis)
+
+
+# %% 5. Plots
+# a. Window integration and histogram reconstruction
 col1, col2 = st.columns(2)
 with col1:
     st.bokeh_chart(p)
@@ -283,26 +344,49 @@ with col1:
 with col2:
     hist_plot.width = 500
     hist_plot.height = 550
-
     st.altair_chart(hist_plot, use_container_width=True)
+
+# b. Spline interpolation plot
+st.title(f"Spline interpolation with {num_points_s} points")
+grid_interp = gridplot(children = interp_plots, ncols = 4, merge_tools=False)
+st.bokeh_chart(grid_interp)
 
 
 # %% 6. Standard deviation 2D plot
-
 # a. Create standard deviation matrix
 if matrix_bool:
     std_grid, source, plots_gaussian =standard_matrix(mu_np, std_np, gaussian_grid_boolean)
 
-if gaussian_grid_boolean:
-    grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
-    st.bokeh_chart(grid_gaussian)
+    if gaussian_grid_boolean:
+        grid_gaussian = gridplot(children = plots_gaussian, ncols = len(std_np), merge_tools=False)
+        st.bokeh_chart(grid_gaussian)
 
 # b. Plot intensity plot
-axis_range = np.arange(-5, 5.5, 0.5)
-intensity_plot = alt.Chart(source).mark_rect().encode(
-    alt.X('mu:O', axis=alt.Axis(values=axis_range, format=".1f")),
-    y='std:O',
-    color='value:Q',
-    tooltip='value')
-intensity_plot = intensity_plot.properties(width = 800, height = 300)
-st.altair_chart(intensity_plot, use_container_width=True)
+    st.title("Standard deviation matrix")
+    axis_range = np.arange(-5, 5.5, 0.5)
+    intensity_plot = alt.Chart(source).mark_rect().encode(
+        alt.X('mu:O', axis=alt.Axis(values=axis_range, format=".1f")),
+        y='std:O',
+        color='value:Q',
+        tooltip='value')
+    intensity_plot = intensity_plot.properties(width = 800, height = 300)
+    st.altair_chart(intensity_plot, use_container_width=True)
+
+
+
+# spline_plot = figure (title=f"{name} interpolation", x_axis_label="Sampling point", y_axis_label="Intensity",
+#                         tooltips=tooltips, width = width, height = height)
+#         spline_plot.circle(x, y, size = 7, color = '#FAA0A0', legend_label = "Integration points")
+        
+#         if method == np.interp:
+#             points = method(new_axis, x, y)
+#         else:
+#             interp = method(x, y)
+#             points = interp(new_axis)
+            
+#         spline_plot.line(new_axis, points, line_width=6, alpha = 0.5, 
+#                          legend_label = f"{name} interpolation", line_dash=line_dash)
+#         spline_plot = plot_format(spline_plot, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+#         plots.append(spline_plot)
+        
+#     return plots

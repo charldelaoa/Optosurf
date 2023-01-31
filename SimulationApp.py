@@ -58,7 +58,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 
 # Create a function to plot the equation
-def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Optical field sampling", width = 700, height = 550):
+def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Optical field sampling", width = 600, height = 450):
     """
     Plot the Super-Gaussian equation using Bokeh
 
@@ -200,7 +200,7 @@ def calculate_fwhm(x, y):
     return x_right - x_left
 
 
-def spline_interpolation(x, y, new_axis, width = 700, height = 550):
+def spline_interpolation(x, y, new_axis, width = 600, height = 450):
     """
     Calculates a spline interpolation of the sampled points 
     by the window integration 
@@ -278,10 +278,8 @@ def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
     return std_grid, source, plots_gaussian
 
 
-
-
 # %% 1. Define the default values for the slider variables
-st.title("Super-Gaussian Equation Plotter plots: $y = e^{-((x-\mu)/\sigma)^n}$")
+st.title("Optical field definition as: $y = e^{-((x-\mu)/\sigma)^n}$")
 st.markdown("## Optical field definition and window integration")
 # a. Streamlit sliders -Gaussian parameters
 st.sidebar.title("Gaussian parameters")
@@ -310,7 +308,7 @@ if matrix_bool:
     with expander_r:
         mu_range = st.slider("Select the median (mu) range", -15.0, 15.0, (-5.0, 5.0))
         mu_step = st.number_input("Input the mu step", 0.0, 10.0, 0.1)
-        std_range = st.slider("Select the standard deviation range", 0.0, 5.0, (1.5, 1.5))
+        std_range = [sigma, sigma]
         std_step = st.number_input("Input the standard deviation step", 0.0, 5.0, 1.0)
         mu_points = (mu_range[1] - mu_range[0])//mu_step
         std_points = (std_range[1] - std_range[0])/std_step
@@ -324,7 +322,6 @@ if matrix_bool:
         st.write('mu array size', len(mu_np))
         st.write('std array size', len(std_np))
 
-
 # d. Spline interpolation parameters
 st.sidebar.title("Spline interpolation parameters")
 expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
@@ -333,7 +330,7 @@ with expander_s:
     num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 1000)
 
 
-# %% 2. Plot gaussian equation
+# %% 2. Plot optical field equation
 # x(np): linspace for the gaussian plot
 # y(np): gaussian values
 p, x, y = plot_equation(mu, sigma, n, number_points, degrees, True)
@@ -344,7 +341,6 @@ p, int_axis, int_points = window_integration(number_windows, window_size, x, y, 
 
 
 # %% 4. Make a 2D histogram reconstruction
-# a. Histogram reconstruction
 hist_plot, std_dev = histogram_reconstruction(int_points, True)
 
 
@@ -357,7 +353,7 @@ if matrix_bool:
         st.bokeh_chart(grid_gaussian)
 
 
-# %% 6. Plot optical field, histograma and standard deviation matrix
+# %% 6. Plot optical field, histogram and standard deviation matrix
 # a. Window integration and histogram reconstruction
 col1, col2 = st.columns(2)
 with col1:
@@ -368,17 +364,18 @@ with col1:
 
 with col2:
     hist_plot.width = 500
-    hist_plot.height = 550
-    st.altair_chart(hist_plot, use_container_width=True)
+    hist_plot.height = 450
+    st.altair_chart(hist_plot, use_container_width=False)
     st.markdown(f"- A histogram is reconstructed from the sampled 32 points")
     st.markdown(f"- The standard deviation is then calculated")
 
 
-# b. Plot intensity plot
+# b. Plot standard deviation matrix
 if matrix_bool:
     st.title("Standard deviation matrix")
-    st.markdown("A standard deviation matrix is calculated by sweeping the parameters $\mu$ at a constant standard deviation $\sigma$")
+    st.markdown("A standard deviation matrix is calculated by sweeping the $\mu$ parameter of the optical field at a constant standard deviation $\sigma$")
     st.markdown(f"The mu parameter is related to the angle of the incoming light and is swept from {mu_range[0]} to {mu_range[1]} with {mu_step} step")
+    st.markdown(f"Notice the variation in the calculated standard deviation from every histogram as plotted in the matrix, this means that this value is not a constant function of $\mu$")
 
     axis_range = np.arange(-5, 5.5, 0.5)
     intensity_plot = alt.Chart(source).mark_rect().encode(
@@ -390,15 +387,13 @@ if matrix_bool:
     st.altair_chart(intensity_plot, use_container_width=True)
 
 
-
-
-# %% 5. Spline interpolation
+# %% 7. Spline interpolation
 new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
 interp_plots, hist_plots = spline_interpolation(int_axis, int_points, new_axis)
 
 # b. Spline interpolation plot
 st.title(f"Spline interpolation with {num_points_s} points")
-grid_interp = gridplot(children = interp_plots, ncols = 3, merge_tools=False)
+grid_interp = gridplot(children = interp_plots, ncols = 2, merge_tools=False)
 st.bokeh_chart(grid_interp)
 
 

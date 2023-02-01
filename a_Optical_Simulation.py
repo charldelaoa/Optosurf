@@ -23,7 +23,7 @@
 #     name: python3
 # ---
 
-# + vscode={"languageId": "python"}
+# +
 #| echo: false
 import bokeh
 from bokeh.plotting import figure, curdoc, show
@@ -79,9 +79,8 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.title.text_font_style = "bold"
     plot.title.text_font_size = "15pt"
     return plot
-# + vscode={"languageId": "python"}
-
 # -
+
 
 
 # # <span style="color:#A6DDFF">Optical field definition and window integratio bb</span>
@@ -118,7 +117,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 # ### Functions definition
 
-# + vscode={"languageId": "python"}
+# +
 def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gaussian", width = 700, height = 550):
     """
     Plot the optical field equation using Bokeh
@@ -266,7 +265,7 @@ def histogram_reconstruction(int_points, hist_bool, title="Super-Gaussian", widt
 #
 # For each sweep combination the histogram is reconstructed and its standard deviation is stored as a matrix. The code and output plot (notice plot is interactive) are now shown:
 
-# + vscode={"languageId": "python"}
+# +
 #| column: screen
 # 1. Define input parameters for the optical field
 mu_np = np.linspace(-4, 4, 3)
@@ -313,7 +312,7 @@ show(grid_gaussian)
 # -<span style="color:#EEDA89">$\sigma$</span>: from 1 to 2.5
 #
 
-# + vscode={"languageId": "python"}
+# +
 #| column: column-page
 number_points = 5000
 number_windows = 32
@@ -363,14 +362,11 @@ intensity_plot
 
 # Standard deviation: 1.0
 
-# + vscode={"languageId": "python"}
 intensity_plot
-# -
 
 # Standard deviation: 1.5
 
-# + vscode={"languageId": "python"}
 intensity_plot
 
-# + vscode={"languageId": "python"}
+# +
 # https://towardsdatascience.com/version-control-with-jupyter-notebook-b9630bc5996e

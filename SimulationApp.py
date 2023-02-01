@@ -280,32 +280,24 @@ def standard_matrix(mu_np, std_np, gaussian_grid_boolean):
 
 # %% 1. Define the default values for the slider variables
 st.title("Optical field definition as: $y = e^{-((x-\mu)/\sigma)^n}$")
-st.markdown("## Optical field definition and window integration")
 # a. Streamlit sliders -Gaussian parameters
 st.sidebar.title("Gaussian parameters")
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
 with expander_g:
+    st.markdown("With these sliders you can modify the parameters of $y = e^{-((x-\mu)/\sigma)^n}$")
     mu = st.slider("Mean", -15.0, 15.0, 0.0, 0.1)
     sigma = st.slider("Standard Deviation", 0.1, 5.0, 1.3, 0.1)
     n = st.slider("Order", 0.0, 10.0, 3.5, 0.5)
-    number_points = st.slider("Number of points", 0, 100000, 50000, 500)
+    number_points = st.slider("Number of points", 0, 100000, 25000, 500)
     degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
-            
-# b. Integration parameters
-st.sidebar.title("Integration parameters")
-expander_i = st.sidebar.expander("Integration parameters", expanded = True)
-with expander_i:
-    number_windows = st.slider("Number of windows", 1, 100, 32, 1)
-    gap = st.slider("Number of gap points", 0, 1000, 100, 1)
-    window_size = number_points//number_windows
-    st.write('Window size: ', window_size)
 
-# c. Standard deviation matrix parameters
+# b. Standard deviation matrix parameters
 st.sidebar.title("Standard deviation matrix parameters")
 matrix_bool = st.sidebar.checkbox("Calculate standard deviation matrix", True)
 if matrix_bool:
     expander_r = st.sidebar.expander("Standard deviation parameters", expanded = True)
     with expander_r:
+        st.markdown("These parameter define the sweep in $\mu$ and $\sigma$")
         mu_range = st.slider("Select the median (mu) range", -15.0, 15.0, (-5.0, 5.0))
         mu_step = st.number_input("Input the mu step", 0.0, 10.0, 0.1)
         std_range = [sigma, sigma]
@@ -322,12 +314,23 @@ if matrix_bool:
         st.write('mu array size', len(mu_np))
         st.write('std array size', len(std_np))
 
-# d. Spline interpolation parameters
-st.sidebar.title("Spline interpolation parameters")
-expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
-with expander_s:
-    degrees_s = st.slider("Select spline degrees range", -30.0, 30.0, (-15.0, 15.0))
-    num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 1000)
+
+# c. Integration parameters
+st.sidebar.title("Integration parameters")
+expander_i = st.sidebar.expander("Integration parameters", expanded = False)
+with expander_i:
+    st.markdown("These parameters are the number of integration windows and gap points")
+    number_windows = st.slider("Number of windows", 1, 100, 32, 1)
+    gap = st.slider("Number of gap points", 0, 1000, 100, 1)
+    window_size = number_points//number_windows
+    st.write('Window size: ', window_size)
+
+# # d. Spline interpolation parameters
+# st.sidebar.title("Spline interpolation parameters")
+# expander_s = st.sidebar.expander("Spline interpolation parameters", expanded = True)
+# with expander_s:
+#     degrees_s = st.slider("Select spline degrees range", -30.0, 30.0, (-15.0, 15.0))
+#     num_points_s = st.number_input("Number of points spline interpolation", 0, 100000, 1000)
 
 
 # %% 2. Plot optical field equation
@@ -358,8 +361,7 @@ if matrix_bool:
 col1, col2 = st.columns(2)
 with col1:
     st.bokeh_chart(p)
-    st.markdown("- The optical field is defined according to the equation $y = e^{-((x-\mu)/\sigma)^n}$ (green curve)")
-    st.markdown(f"- Sampling gaps are simulated (blue curve)")
+    st.markdown("- The optical field is defined according to the equation $y = e^{-((x-\mu)/\sigma)^n}$")
     st.markdown(f"- The pixel sampling is simulated by a window integration using {number_windows} windows (pink points)")
 
 with col2:
@@ -373,9 +375,6 @@ with col2:
 # b. Plot standard deviation matrix
 if matrix_bool:
     st.title("Standard deviation matrix")
-    st.markdown("A standard deviation matrix is calculated by sweeping the $\mu$ parameter of the optical field at a constant standard deviation $\sigma$")
-    st.markdown(f"The mu parameter is related to the angle of the incoming light and is swept from {mu_range[0]} to {mu_range[1]} with {mu_step} step")
-    st.markdown(f"Notice the variation in the calculated standard deviation from every histogram as plotted in the matrix, this means that this value is not a constant function of $\mu$")
 
     axis_range = np.arange(-5, 5.5, 0.5)
     intensity_plot = alt.Chart(source).mark_rect().encode(
@@ -385,16 +384,19 @@ if matrix_bool:
         tooltip='value')
     intensity_plot = intensity_plot.properties(width = 800, height = 300, title=f"Sweep in mu parameter at a constant std deviation value of {std_range[0]}")
     st.altair_chart(intensity_plot, use_container_width=True)
+    st.markdown("A standard deviation matrix is calculated by sweeping the $\mu$ parameter of the optical field at a constant standard deviation $\sigma$")
+    st.markdown(f"The mu parameter is related to the angle of the incoming light and is swept from {mu_range[0]} to {mu_range[1]} with {mu_step} step")
+    st.markdown(f"Notice the variation in the calculated standard deviation from every histogram as plotted in the matrix, this means that this value is not a constant function of $\mu$")
 
 
-# %% 7. Spline interpolation
-new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
-interp_plots, hist_plots = spline_interpolation(int_axis, int_points, new_axis)
+# # %% 7. Spline interpolation
+# new_axis = np.linspace(degrees_s[0],degrees_s[1],num_points_s)
+# interp_plots, hist_plots = spline_interpolation(int_axis, int_points, new_axis)
 
-# b. Spline interpolation plot
-st.title(f"Spline interpolation with {num_points_s} points")
-grid_interp = gridplot(children = interp_plots, ncols = 2, merge_tools=False)
-st.bokeh_chart(grid_interp)
+# # b. Spline interpolation plot
+# st.title(f"Spline interpolation with {num_points_s} points")
+# grid_interp = gridplot(children = interp_plots, ncols = 2, merge_tools=False)
+# st.bokeh_chart(grid_interp)
 
 
 

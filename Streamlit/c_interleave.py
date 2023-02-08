@@ -2,12 +2,11 @@ import streamlit as st
 from bokeh.plotting import figure
 from bokeh.models import Range1d, Span
 from bokeh.layouts import gridplot
+from bokeh.palettes import Pastel2
 import numpy as np
 import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline, PchipInterpolator, Akima1DInterpolator, BSpline
-
-
 st.set_page_config(page_title="Interleave", layout="wide")
 
 
@@ -83,10 +82,11 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
     if plot:
         TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
         p = figure(title=title, x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
-            width = width, height = height, x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2))
+            width = width, height = height)
+        # x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2)
         vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=2)
         p.add_layout(vline)
-        # p.line(x[::20], y[::20], line_width=4, alpha = 0.5, line_color = "#C5E064")
+        p.line(x[::20], y[::20], line_width=4, alpha = 0.5, line_color = "#C5E064", legend_label = "Optical field")
         # p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
         # p.add_layout(xaxis, 'below')
         return p, x, y
@@ -94,7 +94,7 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
         return x, y
     
 
-def window_integration(number_windows, window_size, gap, x, y, p=None):
+def window_integration(number_windows, window_size, gap, x, y, mu, p=None):
     """
     Performs a window integration
 
@@ -118,22 +118,26 @@ def window_integration(number_windows, window_size, gap, x, y, p=None):
     # 1. Get data in every window and integrate
         a = i*window_size
         b = i*window_size + window_size
-        
         x_temp = x[a:b-gap:1]
         y_temp = y[a:b-gap:1]
         integration = np.trapz(y_temp, x_temp, dx = x[1] - x[0])
         integration_points.append(integration)
+        central_point = x_temp[len(x_temp)//2]
+        shifted_point = central_point - mu
+        integration_axis.append(shifted_point)
 
-        axis = x_temp[len(x_temp)//2]
-        integration_axis.append(axis)
-
-    if p is not None:
-        p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
-        p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label = 'Sampled Points')
-        p.x_range = Range1d(-5, 5)
-        p.y_range = Range1d(-0.5, 1)
-        p.xaxis.ticker.desired_num_ticks = 10
-        p = plot_format(p, "Degrees", "Intensity", "top_left", "7pt", "7pt", "7pt")
+        if p is not None:
+            left_edge = x_temp[0]
+            right_edge = x_temp[-1]
+            p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
+            p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
+            p.xaxis.ticker.desired_num_ticks = 10
+            
+    p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
+    p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label = 'Sampled Points')
+    p = plot_format(p, "Degrees", "Intensity", "top_left", "7pt", "7pt", "7pt")
+    p.x_range = Range1d(-16, 16)
+    p.y_range = Range1d(-0.5, 2)
     integration_axis = np.array(integration_axis)
     integration_points = np.array(integration_points)
     return p, integration_axis, integration_points
@@ -177,7 +181,14 @@ with expander_i:
 # %% 2. Define starting plot grid and perform window integration
 mu_np_a = np.array(mu_options)
 
+TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
+interleaved_plot = figure(title='Interleaved points', x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
+            width = 800, height = 450, x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2))
+
+
 plots_gaussian = []
+int_axis_interleaved = []
+int_points_interleaved = []
 columns = ['mu', 'int_axis', 'int_points']
 df = pd.DataFrame(columns=columns)
 
@@ -186,9 +197,22 @@ for i in range(len(mu_np_a)):
         # Generate x and y Gaussian data points 
         title = f"mu: {mu_np_a[i]:.1f}, std: {std_np[j]:.3f}"
         p, x, y = plot_equation(mu_np_a[i], std_np[j], n, number_points, degrees, True, title, 320, 260)
-        p, int_axis, int_points = window_integration(number_windows, window_size, gap, x, y, p)
+        p, int_axis, int_points = window_integration(number_windows, window_size, gap, x, y, mu_np_a[i], p)
         plots_gaussian.append(p)
         df = df.append(pd.DataFrame([[mu_np_a[i], int_axis, int_points]], columns=columns), ignore_index=True)
+        int_axis_interleaved.extend(int_axis)
+        int_points_interleaved.extend(int_points)
+        interleaved_plot.circle(int_axis, int_points, size=7, color = Pastel2[8][i])
+# int_axis_interleaved 
+int_axis_interleaved, int_points_interleaved = zip(*sorted(zip(int_axis_interleaved, int_points_interleaved)))
+interleaved_plot.line(int_axis_interleaved, int_points_interleaved, line_width = 4, alpha = 0.5)
+interleaved_plot = plot_format(interleaved_plot, "Degrees", "Intensity", "top_left", "7pt", "7pt", "7pt")
+st.bokeh_chart(interleaved_plot)
+
+# st.write(type(b))
+# int_axis_interleaved, int_points_interleaved = zip(*sorted(zip(int_axis_interleaved, int_points_interleaved)))
+
 
 grid_gaussian = gridplot(children = plots_gaussian, ncols = 4, merge_tools=False)
 st.bokeh_chart(grid_gaussian)
+

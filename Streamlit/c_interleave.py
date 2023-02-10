@@ -2,13 +2,14 @@ import streamlit as st
 from bokeh.plotting import figure
 from bokeh.models import Range1d, Span
 from bokeh.layouts import gridplot
-from bokeh.palettes import Pastel2
+from bokeh.palettes import Pastel1
 import numpy as np
 import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline, PchipInterpolator, Akima1DInterpolator, BSpline
-st.set_page_config(page_title="Interleave", layout="wide")
 
+st.set_page_config(page_title="Interleave", layout="wide")
+palette = ["#f3c623", "#e84c3d", "#3d97e8", "#3dc8e8", "#6dc8e8", "#8e7fe5", "#f54c4f", "#4c4ff5", "#4cf5b7", "#f5b74c", "#b74cf5", "#4cf54c", "#f54c9c", "#9c4cf5", "#4cf59c", "#f59c4c", "#9c4c8f", "#4c8f9c", "#8f4c9c", "#9c8f4c"]
 
 def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     # x axis format
@@ -50,8 +51,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.xaxis.axis_label_text_color = "#E3F4FF"
     plot.title.text_color = "#A6DDFF"
     plot.title.text_font_style = "bold"
-    plot.title.text_font_size = "8pt"
-
+    
     plot.legend.click_policy="hide"
     return plot
 
@@ -84,7 +84,7 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
         p = figure(title=title, x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
             width = width, height = height)
         # x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2)
-        vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=2)
+        vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
         p.add_layout(vline)
         p.line(x[::20], y[::20], line_width=4, alpha = 0.5, line_color = "#C5E064", legend_label = "Optical field")
         # p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
@@ -135,7 +135,7 @@ def window_integration(number_windows, window_size, gap, x, y, mu, p=None):
             
     p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 0.8)
     p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label = 'Sampled Points')
-    p = plot_format(p, "Degrees", "Intensity", "top_left", "7pt", "7pt", "7pt")
+    p = plot_format(p, "Degrees", "Intensity", "top_left", "10pt", "10pt", "8pt")
     p.x_range = Range1d(-16, 16)
     p.y_range = Range1d(-0.5, 2)
     integration_axis = np.array(integration_axis)
@@ -143,8 +143,30 @@ def window_integration(number_windows, window_size, gap, x, y, mu, p=None):
     return p, integration_axis, integration_points
 
 
+def interleave(number_windows, window_size, gap, x, y, mu, p=None):
+    """
+    Performs a window integration
+
+    Parameters
+    ----------
+    number_windows (int): Number of integration windows
+    window_size (int): Number of data points in the window
+    x(np): linspace for the gaussian plot
+    y(np): gaussian values
+    Returns
+    -------
+    p (bokeh plot): Plot of the integration
+    integration_axis (np): window integration axis
+    integration_points (np): Integrated points
+    """
+    integration_points = []
+    integration_axis = []
+    count = 0
+
+
 # %% 1. Define the default values for the slider variables
 st.title("Optical field definition as: $y = e^{-((x-\mu)/\sigma)^n}$")
+
 # a. Streamlit sliders -Gaussian parameters
 st.sidebar.title("Gaussian parameters")
 expander_g = st.sidebar.expander("Gaussian parameters", expanded = True)
@@ -173,46 +195,74 @@ expander_i = st.sidebar.expander("Integration parameters", expanded = False)
 with expander_i:
     st.markdown("These parameters are the number of integration windows and gap points")
     number_windows = st.slider("Number of windows", 1, 100, 32, 1)
-    gap = st.slider("Number of gap points", 0, 1000, 0  , 1)
+    gap = st.slider("Number of gap points", 0, 1000, 100, 1)
     window_size = number_points//number_windows
     st.write('Window size: ', window_size)
 
-
+# c. Interleaved plot parameters
+st.sidebar.title("Interleaved plot parameters")
+x_plot = st.sidebar.slider("Plot xscale", -20.0, 20.0, (-5.0, 5.0))
+y_plot = st.sidebar.slider("Plot yscale", -20.0, 20.0, (-0.3, 1.5))
 # %% 2. Define starting plot grid and perform window integration
-mu_np_a = np.array(mu_options)
 
+# a. Initiate interleaved plot and arrays
 TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
 interleaved_plot = figure(title='Interleaved points', x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
-            width = 800, height = 450, x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2))
+            width = 800, height = 550, x_range=Range1d(x_plot[0], x_plot[1]), y_range=Range1d(y_plot[0], y_plot[1]))
 
-
+mu_np_a = np.array(mu_options)
 plots_gaussian = []
 int_axis_interleaved = []
 int_points_interleaved = []
+
 columns = ['mu', 'int_axis', 'int_points']
 df = pd.DataFrame(columns=columns)
 
+# b. Sweep the mu parameter, perform window integration and concatenate sampled points
 for i in range(len(mu_np_a)):
     for j in range(len(std_np)):
-        # Generate x and y Gaussian data points 
+        # b1. Perform window integration
         title = f"mu: {mu_np_a[i]:.1f}, std: {std_np[j]:.3f}"
         p, x, y = plot_equation(mu_np_a[i], std_np[j], n, number_points, degrees, True, title, 320, 260)
         p, int_axis, int_points = window_integration(number_windows, window_size, gap, x, y, mu_np_a[i], p)
         plots_gaussian.append(p)
         df = df.append(pd.DataFrame([[mu_np_a[i], int_axis, int_points]], columns=columns), ignore_index=True)
+        # b2. Concatenate sampled points
         int_axis_interleaved.extend(int_axis)
         int_points_interleaved.extend(int_points)
-        interleaved_plot.circle(int_axis, int_points, size=7, color = Pastel2[8][i])
-# int_axis_interleaved 
+
+# c. Interleaved sampled points
 int_axis_interleaved, int_points_interleaved = zip(*sorted(zip(int_axis_interleaved, int_points_interleaved)))
-interleaved_plot.line(int_axis_interleaved, int_points_interleaved, line_width = 4, alpha = 0.5)
-interleaved_plot = plot_format(interleaved_plot, "Degrees", "Intensity", "top_left", "7pt", "7pt", "7pt")
-st.bokeh_chart(interleaved_plot)
+int_points_interleaved_normalized = np.divide(int_points_interleaved, np.max(int_points_interleaved))
 
-# st.write(type(b))
-# int_axis_interleaved, int_points_interleaved = zip(*sorted(zip(int_axis_interleaved, int_points_interleaved)))
+# d. Calculate optical field with interleaved x axis and calculate correlation factor
+mu = 0
+y_original = np.exp(-abs(((np.array(int_axis_interleaved)-mu)/sigma))**n)
+corr_coef = np.corrcoef(y_original, int_points_interleaved_normalized)[0,1]
+interleaved_plot.title = f"Interleaved points and optical field; Corr. Coefficient: {corr_coef:.4f}"
+
+# f. Plot interleaved data
+interleaved_plot.line(int_axis_interleaved, int_points_interleaved_normalized, line_width = 5, color='#B0B4D4',legend_label = 'Interleaved line')
+interleaved_plot.circle(int_axis_interleaved, int_points_interleaved_normalized, size = 5, alpha = 0.8, legend_label = 'Interleaved points', color = '#DCECF9')
+
+# g. Plot optical field
+interleaved_plot.line(int_axis_interleaved, y_original, line_width = 5, alpha = 0.8, legend_label = 'Optical field line', color = '#CCE8DB')
+interleaved_plot.circle(int_axis_interleaved, y_original, size = 5, alpha = 0.8, legend_label = 'Optical field points', color = '#BBF0A8')
+interleaved_plot.xaxis.ticker.desired_num_ticks = 20
+interleaved_plot = plot_format(interleaved_plot, "Degrees", "Intensity", "top_left", "10pt", "15pt", "10pt")
+st.bokeh_chart(interleaved_plot, use_container_width=True)
+
+# h. Plot gaussian grid
+plot_grid = st.checkbox('Plot gaussian grid', True)
+if plot_grid:
+    grid_gaussian = gridplot(children = plots_gaussian, ncols = 4, merge_tools=False)
+    st.bokeh_chart(grid_gaussian)
 
 
-grid_gaussian = gridplot(children = plots_gaussian, ncols = 4, merge_tools=False)
-st.bokeh_chart(grid_gaussian)
+
+# Now we have 320 points after interleaving - spline interplation, e.g.
+# generated another optical field with mu = 0.4173 integrate that will give 32 points
+# then can I use the 320 points to find out what mu value
+
+
 

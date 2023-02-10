@@ -86,7 +86,7 @@ def plot_equation(mu, sigma, n, number_points, degrees, plot, title="Super-Gauss
         # x_range=Range1d(-5, 5), y_range=Range1d(-0.5, 1.2)
         vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
         p.add_layout(vline)
-        p.line(x[::20], y[::20], line_width=4, alpha = 0.5, line_color = "#C5E064", legend_label = "Optical field")
+        p.line(x[::20], y[::20], line_width=4, alpha = 0.5, line_color = "#4B9AFF", legend_label = "Optical field")
         # p.add_layout(Grid(dimension=0, ticker=xaxis.ticker))
         # p.add_layout(xaxis, 'below')
         return p, x, y
@@ -142,14 +142,13 @@ def window_integration(number_windows, window_size, gap, x, y, mu, p=None, windo
         if window_bool:
             left_edge = x_temp[0]
             right_edge = x_temp[-1]
-            # p.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
             interleaved_plot.rect(x=(left_edge + right_edge)/2, y=0.18, width=right_edge-left_edge, height=0.3, 
                                 fill_alpha=0.001, fill_color='#C5E0B4', color='#C5E0B4')
-            # p.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
             interleaved_plot.rect(x=(right_edge + x[b-1])/2, y=0.18, width=x[b-1]-right_edge, height=0.3, 
                                 fill_alpha=0.005, fill_color='#F16C08', color = '#F16C08')
         p.xaxis.ticker.desired_num_ticks = 10
     
+    # 6. Generate plot grid
     if plot_grid:
         p.line(integration_axis, integration_points, line_width = 4, color = '#FAA0A0', alpha = 1)
         p.circle(integration_axis, integration_points, size = 7, color = '#FAA0A0', legend_label = 'Sampled Points')
@@ -204,7 +203,6 @@ interleave_bool = st.sidebar.checkbox('Plot interleaved points', False)
 window_bool = st.sidebar.checkbox("Plot integration windows", False)
 plot_grid = st.sidebar.checkbox('Plot gaussian grid', False)
 # %% 2. Define starting plot grid and perform window integration
-
 # a. Initiate interleaved plot and arrays
 TOOLTIPS = [("index", "$index"),("(x,y)", "($x, $y)")]
 interleaved_plot = figure(title='Interleaved points', x_axis_label='x', y_axis_label='y', tooltips = TOOLTIPS,
@@ -224,7 +222,7 @@ for i in range(len(colors) // 2):
         new_colors.append(colors[len(colors) - i - 1])
 
 # c. Sweep the mu parameter, perform window integration and concatenate sampled points
-for i in reversed(range(len(mu_np_a))):
+for i in range(len(mu_np_a)):
     for j in range(len(std_np)):
         # b1. Perform window integration
         title = f"mu: {mu_np_a[i]:.1f}, std: {std_np[j]:.3f}"
@@ -236,7 +234,7 @@ for i in reversed(range(len(mu_np_a))):
         int_axis_interleaved.extend(int_axis)
         int_points_interleaved.extend(int_points)
 
-# d. Interleaved sampled points
+# d. Interleave sampled points obtained from window integration and normalize the values
 int_axis_interleaved, int_points_interleaved = zip(*sorted(zip(int_axis_interleaved, int_points_interleaved)))
 int_points_interleaved_normalized = np.divide(int_points_interleaved, np.max(int_points_interleaved))
 
@@ -255,11 +253,12 @@ y_points = [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.
 interleaved_plot.line(int_axis_interleaved, y_original, line_width = 7, alpha = 0.9, legend_label = 'Optical field line', color = '#EEDA89')
 interleaved_plot.circle(int_axis_interleaved, y_original, size = 8, legend_label = 'Optical field points', color = '#E5E863')
 if window_bool:
-    interleaved_plot.circle(central_points, 0.34, size = 8, alpha = 0.7, legend_label = 'Central points', color = 'green')
+    interleaved_plot.circle(central_points, 0.34, size = 8, alpha = 0.7, color = 'green')
+
 # h. Format plot
 interleaved_plot.xaxis.ticker.desired_num_ticks = 20
 interleaved_plot.yaxis.ticker.desired_num_ticks = 10
-interleaved_plot = plot_format(interleaved_plot, "Degrees", "Intensity", "top_left", "10pt", "15pt", "10pt")
+interleaved_plot = plot_format(interleaved_plot, "Degrees", "Intensity", "top_left", "13pt", "15pt", "13pt")
 st.bokeh_chart(interleaved_plot, use_container_width=True)
 
 # i. Plot gaussian grid

@@ -363,7 +363,10 @@ int_points_interleaved_normalized_b = np.divide(int_points_interleaved_b, np.max
 # # f. Calculate optical field with interleaved x axis and calculate correlation factor
 mu = 0
 y_original = np.exp(-abs(((np.array(int_axis_interleaved_b)-mu)/sigma))**n)
-corr_coef = np.corrcoef(y_original, int_points_interleaved_normalized_b)[0,1]
+kernel = np.ones(10)
+y_convolved = np.convolve(y_original, kernel, mode='same')
+y_convolved = y_convolved/np.max(y_convolved)
+corr_coef = np.corrcoef(y_convolved, int_points_interleaved_normalized_b)[0,1]
 interleaved_plot_b.title = f"Interleaved points and optical field; Corr. Coefficient: {corr_coef:.4f}"
 
 # # f. Plot interleaved data
@@ -373,7 +376,8 @@ interleaved_plot_b.circle(int_axis_interleaved_b, int_points_interleaved_normali
 # # g. Plot optical field
 interleaved_plot_b.line(int_axis_interleaved_b, y_original, line_width = 7, alpha = 0.9, legend_label = 'Optical field line', color = '#9DD9C5')
 interleaved_plot_b.circle(int_axis_interleaved_b, y_original, size = 8, legend_label = 'Optical field points', color = '#9DD9C5')
-
+interleaved_plot_b.line(int_axis_interleaved_b, y_convolved, line_width = 7, alpha = 0.9, legend_label = 'Convolved line', color = '#9D6C97')
+interleaved_plot_b.circle(int_axis_interleaved_b, y_convolved, size = 8, alpha = 0.9, legend_label = 'Convolved points', color = '#9D6C97')
 
 # # h. Format plot
 interleaved_plot_b.xaxis.ticker.desired_num_ticks = 20
@@ -397,3 +401,5 @@ show(interleaved_plot_b)
 #
 #
 #
+
+

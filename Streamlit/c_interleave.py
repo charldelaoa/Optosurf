@@ -4,7 +4,6 @@ from bokeh.models import Range1d, Span
 from bokeh.layouts import gridplot
 import bokeh.palettes
 import numpy as np
-import pandas as pd
 import numpy as np
 from scipy.interpolate import CubicSpline, PchipInterpolator, Akima1DInterpolator, BSpline
 

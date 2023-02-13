@@ -136,7 +136,7 @@ def window_integration(number_windows, window_size, gap, x, y, mu, p=None, windo
         # 4. Plot the shifted sampled points by each mu
         if interleave_bool:
             interleaved_plot.circle(shifted_point, integration, size = 8, color=new_colors[i])
-        
+
         # 5. Plot the integration window
         if window_bool:
             left_edge = x_temp[0]
@@ -182,7 +182,7 @@ with expander_g:
 
     n = st.number_input("Order", 0.0, 10.0, 3.4)
     number_points = st.slider("Number of points", 0, 100000, 10000, 500)
-    degrees = st.slider("Select degrees range", -30.0, 30.0, (-15.0, 15.0))
+    degrees = st.slider("Select degrees range", -30.0, 30.0, (-16.0, 16.0))
 
 # b. Integration parameters
 st.sidebar.title("Integration parameters")

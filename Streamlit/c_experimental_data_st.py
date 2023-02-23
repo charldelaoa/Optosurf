@@ -93,7 +93,7 @@ color_palette = Set3[10]
 
 # 3. Iterate over the lambda functions to create a slider per parameter
 A = st.sidebar.slider("Background function amplitude", 0, 50000, 19000, 500)
-figures = [figure(title=function[0], width = 650, height = 400) for function in functions]
+figures = [figure(title=function[0], width = 650, height = 400) for function in functions] sdd
 for j, (name, f, params_nums, params_names) in enumerate(functions):
     # a. Add eq. in latex format and boolean to plot
     st.sidebar.title(name)

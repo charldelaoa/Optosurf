@@ -56,10 +56,10 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 # 1. Define the background functions
 functions = [
-    ("Gaussian", lambda x, x0, sigma: np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.3, 20000.0), (r'$x_0$ gaussian', r'$\sigma$ gaussian', 'amp_gaussian')),
-    ("Lorentzian", lambda x, x0, gamma: 1/(1 + ((x-x0)/gamma)**2), (0.0, 1.0, 20000.0), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian', 'amp_lorenzian')),
-    ("Pseudo-Voigt", lambda x, x0, sigma, gamma: (1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.5, 1.0, 20000.0), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt', 'amp_voigt')),
-    ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0, 20000.0), (r'$x_0$ cosine', 'c', 'amp_cosine'))
+    ("Gaussian", lambda x, x0, sigma: np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.5, 13000), (r'$x_0$ gaussian', r'$\sigma$ gaussian', 'amp_gaussian')),
+    ("Lorentzian", lambda x, x0, gamma: 1/(1 + ((x-x0)/gamma)**2), (0.0, 1.0, 20000), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian', 'amp_lorenzian')),
+    ("Pseudo-Voigt", lambda x, x0, sigma, gamma: (1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.5, 1.0, 20000), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt', 'amp_voigt')),
+    ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0, 20000), (r'$x_0$ cosine', 'c', 'amp_cosine'))
 ]
 
 equations = [
@@ -81,13 +81,14 @@ base_shift = st.sidebar.number_input("Base function shift (degrees)", -6.0, 6.0,
 base_amp = st.sidebar.slider("Base function amplitude", 0.0, 1.0, 0.35, 0.01)
 
 base_function = pd.read_csv('data/base_funtion_interpolated.csv')
-x_base = base_function['x_base'].copy().values
+x_base = base_function['x_base'].copy().values.round(3)
 y_base = base_amp*base_function['y_base'].copy().values
 x_background = base_function["x_base"].copy().values
 
 # 3. Select experimental data
 st.sidebar.title('Experimental data')
 rough_df = pd.read_excel('data/rough_samples.xlsx')
+x_rough = rough_df["xaxis"].copy().values
 columns = rough_df.columns
 exp_data = st.sidebar.multiselect('Select experimental data', columns[1:], ['pt2d'])
 color_palette = Set3[10]
@@ -105,7 +106,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
     values = []
     for i, param in enumerate(params_names):
         if 'amp' in param:
-            value = st.sidebar.slider(param, 0, 45000, 20000, 1000)
+            value = st.sidebar.slider(param, 0, 45000, params_nums[i], 1000)
         else:
             value = st.sidebar.slider(param, -5.0, 5.0, params_nums[i], 0.1)
         values.append(value)
@@ -123,7 +124,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         # c2. Calculate function
         values[0] = base_shift 
         y_background = values[-1]*f(x_background, *values[0:-1])
-        y_sub = y_base + y_background
+        y_final = y_base + y_background
             
         # d. Plots
         # base function plot
@@ -137,13 +138,17 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         # rough data plot
         if exp_bool:
             for k, col in enumerate(exp_data):
-                p.line(rough_df['xaxis'], rough_df[col], legend_label = col, line_width = 5, color=color_palette[k+1])
-                p.circle(rough_df['xaxis'], rough_df[col], legend_label = col, size = 7)
+                p.line(x_rough, rough_df[col], legend_label = col, line_width = 5, color=color_palette[k+1])
+                p.circle(x_rough, rough_df[col], legend_label = col, size = 7)
 
         # base - background
         if add_bool:
-            p.line(x_base, y_sub, line_width = 5, legend_label = 'Combined functions', color = '#A6DDFF', alpha = 1.0)
-        
+            indices = np.where(np.isin(x_base, x_rough))[0]
+            y_final_points = y_final[indices]
+            p.line(x_base, y_final, line_width = 5, legend_label = 'Combined functions', color = '#A6DDFF', alpha = 1.0)
+            p.triangle(x_rough, y_final_points, size = 10)
+
+            
         p.x_range = Range1d(xlims[0], xlims[1])
         p.y_range = Range1d(ylims[0], ylims[1])
         p.xaxis.ticker.desired_num_ticks = 20

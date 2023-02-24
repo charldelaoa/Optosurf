@@ -117,6 +117,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
 
         # c1. Shift base function axis
         x_base += base_shift # base_shift value from slider
+        y_base = base_amp*y_base
         x_background += base_shift
         
         # c2. Calculate function

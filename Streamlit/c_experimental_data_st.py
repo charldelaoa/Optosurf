@@ -1,6 +1,7 @@
 import streamlit as st
 from bokeh.plotting import figure
 from bokeh.layouts import gridplot
+from bokeh.models import Range1d, Span
 import numpy as np
 import pandas as pd
 from bokeh.palettes import Set3
@@ -15,13 +16,15 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.xaxis.major_label_text_font_style = "bold"
     plot.xaxis.axis_label_text_font_size = size
     plot.xaxis.major_label_text_font_size = size
-
+    plot.xgrid.grid_line_color = '#2D3135'
+    
     # y axis format
     plot.yaxis.axis_label = ylabel
     plot.yaxis.axis_label_text_font_style = 'bold'
     plot.yaxis.major_label_text_font_style = "bold"
     plot.yaxis.axis_label_text_font_size = size
     plot.yaxis.major_label_text_font_size = size
+    plot.ygrid.grid_line_color = '#2D3135'
 
     # Legend format
     plot.legend.location = location
@@ -36,13 +39,8 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
     # Title format
     plot.title.text_font_size = titlesize
-
     plot.background_fill_color = "#0E1117"
     plot.border_fill_color = "#0E1117"
-
-    plot.xgrid.grid_line_color = '#2D3135'
-    plot.ygrid.grid_line_color = '#2D3135'
-    
     plot.yaxis.major_label_text_color = "#E3F4FF"
     plot.xaxis.major_label_text_color = "#E3F4FF"
     plot.yaxis.axis_label_text_color = "#E3F4FF"
@@ -56,14 +54,14 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 
 
-# 1. Define the functions to be plotted
+# 1. Define the background functions
 functions = [
-    ("Gaussian", lambda x, x0, sigma: np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.3), (r'$x_0$ gaussian', r'$\sigma$ gaussian')),
-    ("Lorentzian", lambda x, x0, gamma: 1/(1 + ((x-x0)/gamma)**2), (0.0, 1.0), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian')),
-    ("Pseudo-Voigt", lambda x, x0, sigma, gamma: (1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.5, 1.0), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt')),
-    ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0), (r'$x_0$ cosine', 'c'))
+    ("Gaussian", lambda x, x0, sigma: np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.3, 20000.0), (r'$x_0$ gaussian', r'$\sigma$ gaussian', 'amp_gaussian')),
+    ("Lorentzian", lambda x, x0, gamma: 1/(1 + ((x-x0)/gamma)**2), (0.0, 1.0, 20000.0), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian', 'amp_lorenzian')),
+    ("Pseudo-Voigt", lambda x, x0, sigma, gamma: (1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.5, 1.0, 20000.0), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt', 'amp_voigt')),
+    ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0, 20000.0), (r'$x_0$ cosine', 'c', 'amp_cosine'))
 ]
-#  ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0), ('x0cos', 'c'))
+
 equations = [
     r"$\exp\left(-\frac{(x-x_0)^2}{2\sigma^2}\right)$",
     r"$\frac{1}{1+\left(\frac{x-x_0}{\gamma}\right)^2}$",
@@ -72,17 +70,20 @@ equations = [
 ]
 
 # 2. Get the base function xaxis and yaxis
-base_function = pd.read_csv('data/base_funtion_interpolated.csv')
-
 st.sidebar.title("Function parameters")
 base_bool = st.sidebar.checkbox("Plot base function", True)
 background_bool = st.sidebar.checkbox("Plot background function", True)
 exp_bool  = st.sidebar.checkbox("Plot experimental data", True)
 add_bool = st.sidebar.checkbox("Add base and background functions ", True)
-base_amp = st.sidebar.slider("Base function amplitude", 0.0, 1.0, 0.35, 0.05)
-x = base_function["x_base"].values
-x_base = base_function['x_base'].values
-y_base = base_amp*base_function['y_base'].values
+ylims = st.sidebar.slider("Select y axis range", -5000, 50000, (-5000, 45000), 1000)
+xlims = st.sidebar.slider("Select x axis range", -20, 20, (-16, 16), 1)
+base_shift = st.sidebar.number_input("Base function shift (degrees)", -6.0, 6.0, 0.0, 0.05)
+base_amp = st.sidebar.slider("Base function amplitude", 0.0, 1.0, 0.35, 0.01)
+
+base_function = pd.read_csv('data/base_funtion_interpolated.csv')
+x_base = base_function['x_base'].copy().values
+y_base = base_amp*base_function['y_base'].copy().values
+x_background = base_function["x_base"].copy().values
 
 # 3. Select experimental data
 st.sidebar.title('Experimental data')
@@ -92,8 +93,8 @@ exp_data = st.sidebar.multiselect('Select experimental data', columns[1:], ['pt2
 color_palette = Set3[10]
 
 # 3. Iterate over the lambda functions to create a slider per parameter
-A = st.sidebar.slider("Background function amplitude", 0, 50000, 19000, 500)
-figures = [figure(title=function[0], width = 650, height = 400) for function in functions] sdd
+# figures = [figure(title=function[0], width = 650, height = 400) for function in functions] 
+figures = [] 
 for j, (name, f, params_nums, params_names) in enumerate(functions):
     # a. Add eq. in latex format and boolean to plot
     st.sidebar.title(name)
@@ -103,34 +104,53 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
     # b. Iterate over each parameter to create a slider
     values = []
     for i, param in enumerate(params_names):
-        value = st.sidebar.slider(param, -5.0, 5.0, params_nums[i], 0.1)
+        if 'amp' in param:
+            value = st.sidebar.slider(param, 0, 45000, 20000, 1000)
+        else:
+            value = st.sidebar.slider(param, -5.0, 5.0, params_nums[i], 0.1)
         values.append(value)
 
     # c. Evaluate function
     # TODO: Shift y along x axis as well -@carlosreyes at 2/23/2023, 11:47:44 AM
-    y = A*f(x, *values)
-    x_base = x_base + values[0]
-    y_sub = y_base + y
+    if plot_bool:
+        p = figure(title = name, width=650, height=400)
 
-    # d. Plots
-    # base function plot
-    if base_bool:
-        figures[j].line(x_base, y_base, line_width = 5, color = '#9D6C97', legend_label = 'base_function', line_dash = 'dashed')
+        # c1. Shift base function axis
+        x_base += base_shift # base_shift value from slider
+        x_background += base_shift
         
-    # background function plot
-    if background_bool:
-        figures[j].line(x, y, line_width = 5, color = '#9DD9C5', legend_label = name, line_dash = 'dashdot')
-    
-    # rough data plot
-    if exp_bool:
-        for k, col in enumerate(exp_data):
-            figures[j].line(rough_df['xaxis'], rough_df[col], legend_label = col, line_width = 5, color=color_palette[k+1])
-            figures[j].circle(rough_df['xaxis'], rough_df[col], legend_label = col, size = 7)
+        # c2. Calculate function
+        values[0] = base_shift 
+        y_background = values[-1]*f(x_background, *values[0:-1])
+        y_sub = y_base + y_background
+            
+        # d. Plots
+        # base function plot
+        if base_bool:
+            p.line(x_base, y_base, line_width = 5, color = '#9D6C97', legend_label = 'base_function')
+            
+        # background function plot
+        if background_bool:
+            p.line(x_background, y_background, line_width = 5, color = '#9DD9C5', legend_label = 'background_function')
+        
+        # rough data plot
+        if exp_bool:
+            for k, col in enumerate(exp_data):
+                p.line(rough_df['xaxis'], rough_df[col], legend_label = col, line_width = 5, color=color_palette[k+1])
+                p.circle(rough_df['xaxis'], rough_df[col], legend_label = col, size = 7)
 
-    # base - background
-    if add_bool:
-        figures[j].line(x_base, y_sub, line_width = 5, legend_label = 'Combined functions', color = '#3BAA6E')
-    figures[j] = plot_format(figures[j], "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+        # base - background
+        if add_bool:
+            p.line(x_base, y_sub, line_width = 5, legend_label = 'Combined functions', color = '#A6DDFF', alpha = 1.0)
+        
+        p.x_range = Range1d(xlims[0], xlims[1])
+        p.y_range = Range1d(ylims[0], ylims[1])
+        p.xaxis.ticker.desired_num_ticks = 20
+        p.yaxis.ticker.desired_num_ticks = 10
+        vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
+        p.add_layout(vline)
+        p = plot_format(p, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+        figures.append(p)
 
     
 grid = gridplot(children=figures, ncols = 2, merge_tools=False)

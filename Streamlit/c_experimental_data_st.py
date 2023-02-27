@@ -79,14 +79,14 @@ ylims = st.sidebar.slider("Select y axis range", -5000, 50000, (-5000, 45000), 1
 xlims = st.sidebar.slider("Select x axis range", -20, 20, (-16, 16), 1)
 
 # 3. Get base function 
-base_function = pd.read_csv('data/base_funtion_interpolated.csv')
+base_function = pd.read_csv('base_funtion_interpolated.csv')
 x_base = base_function['x_base'].copy().values.round(3)
 y_base = base_function['y_base'].copy().values
 x_background = base_function["x_base"].copy().values
 
 # 4. Select experimental data
 st.sidebar.title('Experimental data')
-rough_df = pd.read_excel('data/rough_samples.xlsx')
+rough_df = pd.read_excel('rough_samples.xlsx')
 x_rough = rough_df["xaxis"].copy().values
 columns = rough_df.columns
 exp_data = st.sidebar.multiselect('Select experimental data', columns[1:], ['pt2d'])

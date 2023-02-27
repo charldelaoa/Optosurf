@@ -81,7 +81,6 @@ xlims = st.sidebar.slider("Select x axis range", -20, 20, (-16, 16), 1)
 
 # 3. Get base function
 path = Path(__file__).parents[0] / 'base_funtion_interpolated.csv' 
-st.write(path)
 base_function = pd.read_csv(path)
 x_base = base_function['x_base'].copy().values.round(3)
 y_base = base_function['y_base'].copy().values

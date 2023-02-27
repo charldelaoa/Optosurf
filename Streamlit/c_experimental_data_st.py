@@ -69,7 +69,7 @@ equations = [
     r"$0.5*(1 + \cos(\pi\frac{(x-x_0)}{c}))$"
 ]
 
-# 2. Get the base function xaxis and yaxis
+# 2. Define sliders
 st.sidebar.title("Function parameters")
 base_bool = st.sidebar.checkbox("Plot base function", True)
 background_bool = st.sidebar.checkbox("Plot background function", True)
@@ -80,6 +80,7 @@ xlims = st.sidebar.slider("Select x axis range", -20, 20, (-16, 16), 1)
 base_shift = st.sidebar.number_input("Base function shift (degrees)", -6.0, 6.0, 0.0, 0.05)
 base_amp = st.sidebar.slider("Base function amplitude", 0.0, 1.0, 0.35, 0.01)
 
+# 3. Get base function 
 base_function = pd.read_csv('data/base_funtion_interpolated.csv')
 x_base = base_function['x_base'].copy().values.round(3)
 y_base = base_amp*base_function['y_base'].copy().values
@@ -96,26 +97,27 @@ color_palette = Set3[10]
 # 3. Iterate over the lambda functions to create a slider per parameter
 # figures = [figure(title=function[0], width = 650, height = 400) for function in functions] 
 figures = [] 
+
 for j, (name, f, params_nums, params_names) in enumerate(functions):
     # a. Add eq. in latex format and boolean to plot
-    st.sidebar.title(name)
-    st.sidebar.markdown(equations[j])
-    plot_bool = st.sidebar.checkbox(f'Plot {name}', True)
-    
+    st.title(f"{name}: {equations[j]}")
+    # st.markdown(equations[j])
+    plot_bool = st.checkbox(f'Plot {name}', True)
+    columns = st.columns([1,2])
     # b. Iterate over each parameter to create a slider
     values = []
     for i, param in enumerate(params_names):
-        if 'amp' in param:
-            value = st.sidebar.slider(param, 0, 45000, params_nums[i], 1000)
-        else:
-            value = st.sidebar.slider(param, -5.0, 5.0, params_nums[i], 0.1)
-        values.append(value)
+        with columns[0]:
+            if 'amp' in param:
+                value = st.slider(param, 0, 45000, params_nums[i], 1000)
+            else:
+                value = st.slider(param, -5.0, 5.0, params_nums[i], 0.1)
+            values.append(value)
 
     # c. Evaluate function
     # TODO: Shift y along x axis as well -@carlosreyes at 2/23/2023, 11:47:44 AM
     if plot_bool:
-        p = figure(title = name, width=650, height=400)
-
+        p = figure(title = name, width=750, height=450) 
         # c1. Shift base function axis
         x_base += base_shift # base_shift value from slider
         y_base = base_amp*y_base
@@ -139,16 +141,15 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         if exp_bool:
             for k, col in enumerate(exp_data):
                 p.line(x_rough, rough_df[col], legend_label = col, line_width = 5, color=color_palette[k+1])
-                p.circle(x_rough, rough_df[col], legend_label = col, size = 7)
+                p.circle(x_rough, rough_df[col], legend_label = col, size = 7, color='#5F9545')
 
         # base - background
         if add_bool:
             indices = np.where(np.isin(x_base, x_rough))[0]
             y_final_points = y_final[indices]
             p.line(x_base, y_final, line_width = 5, legend_label = 'Combined functions', color = '#A6DDFF', alpha = 1.0)
-            p.triangle(x_rough, y_final_points, size = 10)
+            p.triangle(x_rough, y_final_points, size = 8)
 
-            
         p.x_range = Range1d(xlims[0], xlims[1])
         p.y_range = Range1d(ylims[0], ylims[1])
         p.xaxis.ticker.desired_num_ticks = 20
@@ -156,10 +157,12 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
         p.add_layout(vline)
         p = plot_format(p, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+        with columns[1]:
+            st.bokeh_chart(p)
         figures.append(p)
 
     
-grid = gridplot(children=figures, ncols = 2, merge_tools=False)
-st.bokeh_chart(grid)
+# grid = gridplot(children=figures, ncols = 2, merge_tools=False)
+# st.bokeh_chart(grid)
 
 

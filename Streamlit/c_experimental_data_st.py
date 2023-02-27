@@ -5,6 +5,7 @@ from bokeh.models import Range1d, Span
 import numpy as np
 import pandas as pd
 from bokeh.palettes import Set3
+from pathlib import Path
 # Create a Streamlit app
 st.set_page_config(page_title="Super-Gaussian Equation Plotter", layout="wide")
 
@@ -78,7 +79,9 @@ downsampling_bool = st.sidebar.checkbox("Add downsampled points ", True)
 ylims = st.sidebar.slider("Select y axis range", -5000, 50000, (-5000, 45000), 1000)
 xlims = st.sidebar.slider("Select x axis range", -20, 20, (-16, 16), 1)
 
-# 3. Get base function 
+# 3. Get base function
+path = Path(__file__).parents[0] / 'data/base_funtion_interpolated.csv' 
+st.write(path)
 base_function = pd.read_csv('base_funtion_interpolated.csv')
 x_base = base_function['x_base'].copy().values.round(3)
 y_base = base_function['y_base'].copy().values
@@ -86,7 +89,8 @@ x_background = base_function["x_base"].copy().values
 
 # 4. Select experimental data
 st.sidebar.title('Experimental data')
-rough_df = pd.read_excel('rough_samples.xlsx')
+path = Path(__file__).parents[0] / 'data/rough_samples.xlsx'
+rough_df = pd.read_excel(path)
 x_rough = rough_df["xaxis"].copy().values
 columns = rough_df.columns
 exp_data = st.sidebar.multiselect('Select experimental data', columns[1:], ['pt2d'])

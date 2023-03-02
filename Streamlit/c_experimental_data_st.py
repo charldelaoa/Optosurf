@@ -149,7 +149,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         if downsampling_bool:    
             indices = np.where(np.isin(x_base, x_rough+values[0]))[0]
             y_final_points = y_final[indices]
-            p.line(x_rough+values[0], y_final_points, line_width=5, legend_label = 'Downsampling', color = '#98473E',  alpha = 0.7)
+            p.line(x_rough+values[0], y_final_points, line_width=5, legend_label = 'Downsampling', color = '#98473E',  alpha = 0.7, line_dash='dashed')
             p.triangle(x_rough+values[0], y_final_points, size = 10, legend_label = 'Downsampling', color = '#DB8A74')
 
         p.x_range = Range1d(xlims[0], xlims[1])

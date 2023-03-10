@@ -55,16 +55,16 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
 # 1. Define the background functions
 functions = [
-    ("Gaussian", lambda x, x0, sigma: np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.9, 3500, 0.8), (r'$x_0$ gaussian', r'$\sigma$ gaussian', 'amp_gaussian', 'base function amplitude 1')),
-    ("Lorentzian", lambda x, x0, gamma: 1/(1 + ((x-x0)/gamma)**2), (0.0, 2.1, 2500, 0.82), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian', 'amp_lorenzian', 'base function amplitude 2')),
-    ("Pseudo-Voigt", lambda x, x0, sigma, gamma: (1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.2, 1.5, 17750, 0.8), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt', 'amp_voigt', 'base function amplitude 3')),
-    ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0, 20000, 0.5), (r'$x_0$ cosine', 'c', 'amp_cosine', 'base function amplitude 4'))
-]
+    ("Gaussian", lambda x, x0, sigma, Ag: Ag*np.exp(-((x-x0)/sigma)**2/2), (0.0, 1.9, 3500, 0.8), (r'$x_0$ gaussian', r'$\sigma$ gaussian', 'amp_gaussian', 'base function amplitude 1')),
+    ("Lorentzian", lambda x, x0, gamma, Al: Al/(1 + ((x-x0)/gamma)**2), (0.0, 2.1, 2500, 0.82), (r'$x_0$ lorentzian', r'$\gamma$ lorentzian', 'amp_lorenzian', 'base function amplitude 2')),
+    ("Pseudo-Voigt", lambda x, x0, sigma, gamma, A1, A2: A1*(1 - gamma) * np.exp(-((x-x0)/sigma)**2/2) + A2*gamma/(1 + ((x-x0)/sigma)**2), (0.0, 0.2, 1.5, 17750, 10000, 0.8), (r'$x_0$ voigt', r'$\sigma$ voigt', r'$\gamma$ voigt', 'A1amp_', 'A2amp_', 'base function amplitude 3')),
+    ]
+    # ("Squared cosine", lambda x, x0, c: np.where(np.abs(x-x0) <= c, 0.5*(1 + np.cos(np.pi*(x-x0)/c)), 0), (0.0, 2.0, 20000, 0.5), (r'$x_0$ cosine', 'c', 'amp_cosine', 'base function amplitude 4'))
 
 equations = [
     r"$\exp\left(-\frac{(x-x_0)^2}{2\sigma^2}\right)$",
     r"$\frac{1}{1+\left(\frac{x-x_0}{\gamma}\right)^2}$",
-    r"$(1-\gamma)\exp\left(-\frac{(x-x_0)^2}{2\sigma^2}\right) + \frac{\gamma}{1+\left(\frac{x-x_0}{\sigma}\right)^2}$",
+    r"$A_{1}*(1-\gamma)\exp\left(-\frac{(x-x_0)^2}{2\sigma^2}\right) + A2*\frac{\gamma}{1+\left(\frac{x-x_0}{\sigma}\right)^2}$",
     r"$0.5*(1 + \cos(\pi\frac{(x-x_0)}{c}))$"
 ]
 
@@ -113,7 +113,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
             else:
                 value = st.slider(param, -5.0, 5.0, params_nums[i], 0.1)
             values.append(value)
-
+    
     if plot_bool:
         p = figure(title = name, width=770, height=530) 
         # 8. Shift base function axis
@@ -122,7 +122,7 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         x_background += values[0]
 
         # 9. Calculate background function
-        y_background = values[-1]*f(x_background, *values[0:-2])
+        y_background = f(x_background, *values[0:-1])
         y_final = y_base + y_background
             
         # 10. Plots

@@ -16,16 +16,15 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: WebApps
+#     display_name: webapps
 #     language: python
 #     name: python3
 # ---
 
 # +
 #| echo: false
-import bokeh
 from bokeh.plotting import figure, curdoc, show
 from bokeh.models import Rect, LinearColorMapper, SingleIntervalTicker, LinearAxis, Grid
 from bokeh.layouts import gridplot
@@ -64,29 +63,26 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 
     # Title format
     plot.title.text_font_size = titlesize
+    plot.title.text_font_style = "bold"
 
+    # Dark theme
     plot.background_fill_color = "#282B30"
     plot.border_fill_color = "#282B30"
-
     plot.xgrid.grid_line_color = '#606773'
     plot.ygrid.grid_line_color = '#606773'
-
     plot.yaxis.major_label_text_color = "#E3F4FF"
     plot.xaxis.major_label_text_color = "#E3F4FF"
     plot.yaxis.axis_label_text_color = "#E3F4FF"
     plot.xaxis.axis_label_text_color = "#E3F4FF"
     plot.title.text_color = "#A6DDFF"
-    plot.title.text_font_style = "bold"
-    plot.title.text_font_size = "15pt"
     return plot
+
+
 # -
-
-
-
-# # <span style="color:#A6DDFF">Optical field definition and window integratio bb</span>
+# # <span style="color:#A6DDFF">Optical field definition and window integration</span>
 
 # ## Optical field definition
-# The optical field detected by the Optosurf is simulated according to the equation $y = e^{-((x-\mu)/\sigma)^n}. 
+# The optical field detected by the Optosurf is simulated according to the equation $y = e^{-((x-\mu)/\sigma)^n}$. 
 # The $\mu$ parameter relates to the incoming angle of the sample's reflected light, this is equivalent to a lateral shift of the optical field. The $\sigma$ 
 # parameter relates roughness of the sample and determines the widht of the optical field.
 
@@ -98,7 +94,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 #
 # ::: {#fig-1}
 #
-# ![](images/Fig2.png)
+# ![](images/a/Fig1.png)
 #
 # a. Optical field definition. b. Window integration. c. Histogram
 # :::
@@ -172,7 +168,6 @@ def window_integration(number_windows, window_size, gap, x, y, p=None):
     """
     integration_points = []
     integration_axis = []
-    color_multiplier = len(bokeh.palettes.Viridis256)//number_windows
     count = 0
     
     for i in range(number_windows):
@@ -251,7 +246,7 @@ def histogram_reconstruction(int_points, hist_bool, title="Super-Gaussian", widt
 
 # ::: {#fig-2}
 #
-# ![](images/Fig2.png)
+# ![](images/a/Fig2.png)
 #
 # a. Sweep in mu parameter. b. Sweep in sigma parameter.
 # :::
@@ -357,7 +352,6 @@ intensity_plot = alt.Chart(source).mark_rect().encode(
     color='value:Q',
     tooltip='value').interactive()
 intensity_plot = intensity_plot.properties(width = 600, height = 200, title = 'Standard deviation variation')
-intensity_plot
 # -
 
 # Standard deviation: 1.0

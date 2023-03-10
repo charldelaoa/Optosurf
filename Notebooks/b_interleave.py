@@ -16,9 +16,9 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: WebApps
+#     display_name: webapps
 #     language: python
 #     name: python3
 # ---
@@ -384,6 +384,8 @@ interleaved_plot_b.xaxis.ticker.desired_num_ticks = 20
 interleaved_plot_b.yaxis.ticker.desired_num_ticks = 10
 interleaved_plot_b = plot_format(interleaved_plot_b, "Degrees", "Intensity", "top_left", "11pt", "13pt", "11pt")
 show(interleaved_plot_b)
+
+
 # -
 
 # - Integrate the known optical field (green points)
@@ -402,4 +404,82 @@ show(interleaved_plot_b)
 #
 #
 
+# +
+def solution(data, n):
+    if len(data) > 100:
+        raise ValueError("Input list should have less than 100 elements.")
+    
+    counts = {}
+    for x in data:
+        counts[x] = counts.get(x, 0) + 1
 
+    return [x for x in data if counts[x] <= n]
+
+# # Test case 1
+data = [1]
+n = 0
+result = solution(data, n)
+print(result)  # []
+
+# Test case 2
+data = [5, 10, 15, 10, 7]
+n = 1
+result = solution(data, n)
+print(result)  # [1, 4]
+
+
+
+# +
+data = []
+n = 0
+result = solution(data, n)
+assert result == []
+
+# Test case 2: List with one element
+data = [1]
+n = 0
+result = solution(data, n)
+print(result)
+assert result == []
+
+# Test case 3: List with all elements occurring <= n times
+data = [1, 2, 3, 4]
+n = 1
+result = solution(data, n)
+assert result == data
+
+# Test case 4: List with all elements occurring > n times
+data = [1, 1, 2, 2, 3, 3]
+n = 1
+result = solution(data, n)
+assert result == []
+
+# Test case 5: List with some elements occurring <= n times and some occurring > n times
+data = [1, 1, 2, 3, 3, 3, 4, 4, 5]
+n = 1
+result = solution(data, n)
+assert result == [2, 5]
+
+# Test case 6: List with all elements occurring == n times
+data = [1, 1, 2, 2, 3, 3, 4, 4]
+n = 2
+result = solution(data, n)
+assert result == []
+
+# Test case 7: List with some elements occurring == n times and some occurring > n times
+data = [1, 1, 2, 3, 3, 3, 4, 4, 4]
+n = 2
+result = solution(data, n)
+assert result == [1, 2, 3]
+
+# Test case 8: List with negative numbers
+data = [-1, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]
+n = 2
+result = solution(data, n)
+assert result == [-1, 0, 3]
+
+# Test case 9: List with duplicate elements
+data = [1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3]
+n = 2
+result = solution(data, n)
+assert result == [1]

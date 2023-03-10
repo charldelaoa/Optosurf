@@ -16,9 +16,9 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.14.4
+#       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: webapps
+#     display_name: Python 3.9.1 64-bit ('webapss')
 #     language: python
 #     name: python3
 # ---
@@ -34,8 +34,10 @@ from bokeh.io import output_notebook
 import warnings
 import pandas as pd
 import altair as alt
+from IPython.display import display
 warnings.filterwarnings('ignore')
 output_notebook()
+
 alt.data_transformers.disable_max_rows()
 data = np.loadtxt('data/PT_wafer2_after_d_diodes.dat', delimiter=',')
 
@@ -74,6 +76,11 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
     plot.background_fill_color = "#282B30"
     plot.border_fill_color = "#282B30"
     plot.xgrid.grid_line_color = '#606773'
+    # plot.xgrid.minor_grid_line_color = '#606773' 
+    # plot.xgrid.minor_grid_line_alpha = 0.4
+    # plot.xgrid.minor_grid_line_dash = [2, 2] 
+    plot.xaxis.minor_tick_line_color = '#606773'
+    plot.yaxis.minor_tick_line_color = '#606773'
     plot.ygrid.grid_line_color = '#606773'
     plot.yaxis.major_label_text_color = "#E3F4FF"
     plot.xaxis.major_label_text_color = "#E3F4FF"
@@ -99,7 +106,7 @@ def plot_format(plot, xlabel, ylabel, location, size, titlesize, labelsize):
 # A. Experimental data; B. Interleaved experimental base function
 # :::
 
-# ### Experimental  collection
+# ### Experimental base function data collection
 
 # The following code shows the acquired experimental data:
 
@@ -182,20 +189,13 @@ for aveindex in range(1, len(base_function_df)):
         smooth_df.loc[xoutindx, 'yaxis'] = base_function_df.loc[aveindex, 'yaxis']
         smooth_df.loc[xoutindx, 'colors'] = base_function_df.loc[aveindex, 'colors']
 
-
-# b. Create non-smooth and smoot curve
-interleaved_plot = figure(title='Interleaved base function', x_axis_label='sampling point', y_axis_label='intensity', tooltips=[("index", "$index"), ("(x,y)", "($x, $y)")],
-                          width=700, height=500)
-smooth_plot = figure(title='Smooth base function', x_axis_label='sampling point', y_axis_label='intensity', tooltips=[("index", "$index"), ("(x,y)", "($x, $y)")],
-                     width=700, height=500)
-
-# c. Plot points
+# b. Plot points
 for (plot, df, legend, color) in [(interleaved_plot, base_function_df, 'Non-smooth base function', '#9DC3E6'), (smooth_plot, smooth_df, 'Smooth base function', '#9D6C97')]:
     # individual points
     plot.circle(df.xaxis, df.yaxis, color=df.colors, size=6)
 
     # smooth curve
-    plot.line(df['xaxis'], df['yaxis'], line_width=4, legend=legend, color=color)
+    plot.line(df['xaxis'], df['yaxis'], line_width=4, legend_label=legend, color=color)
 
     # format
     plot.xaxis.ticker.desired_num_ticks = 15
@@ -207,8 +207,8 @@ x_base = np.arange(-15.5, 15.5001, 0.001).round(3)
 pchip = PchipInterpolator(smooth_df['xaxis'], smooth_df['yaxis'])
 y_base = pchip(x_base)
 
-interpolated_plot.line(x=smooth_df['xaxis'], y=smooth_df['yaxis'], line_width = 5, legend = 'Smooth base function', color = '#9D6C97')
-interpolated_plot.line(x_base, y_base, line_width = 5, color = '#9DD9C5', legend = 'Interpolated base function')
+interpolated_plot.line(x=smooth_df['xaxis'], y=smooth_df['yaxis'], line_width = 5, legend_label = 'Smooth base function', color = '#9D6C97')
+interpolated_plot.line(x_base, y_base, line_width = 5, color = '#9DD9C5', legend_label = 'Interpolated base function')
 interpolated_plot.xaxis.ticker.desired_num_ticks = 15
 interpolated_plot.y_range = Range1d(-1000, 45000)
 
@@ -242,7 +242,7 @@ show(base_function_grid)
 # From the experimental data it was observed that rough samples modify the amplitude and tails of the base function, the data is now shown:
 
 # +
-#| column: page
+#| column: screen
 from bokeh.palettes import Set3
 # 1. Import data
 rough_df = pd.read_excel('data/rough_samples.xlsx')
@@ -254,17 +254,24 @@ color_palette = Set3[len(rough_df.columns[1:])+2]
 
 # a. iterate over the columns and add a line for each one
 for i, col in enumerate(rough_df.columns[1:]):
-    rough_plot = figure(title = str(col), x_axis_label='xaxis', y_axis_label='yaxis', width = 350, height = 320, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
-    rough_plot.line(x_base, y_base, line_width=4, color = '#9D6C97', legend_label = 'base function')
+    rough_plot = figure(title = str(col), x_axis_label='xaxis', y_axis_label='yaxis', width = 530, height = 420, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+    # Base function points
+    
+    rough_plot.circle(x=base_function_df.xaxis, y=base_function_df.yaxis, color = base_function_df.colors, legend_label = 'Base function non-smooth', size = 6)
+    rough_plot.circle(x=smooth_df.xaxis, y=smooth_df.yaxis, color = smooth_df.colors, legend_label = 'Base function smooth', size = 6)
+    # rough_plot.line(x=smooth_df.xaxis, y=smooth_df.yaxis, legend_label = 'Base function', line_width=4, color='#D17B8F')
+
+    # Experimental data
     rough_plot.line('xaxis', col, source=source_rough, color = '#9DC3E6', legend_label = str(col), line_width=4)
-    rough_plot.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = str(col))
+    rough_plot.triangle('xaxis', col, source=source_rough, fill_color= color_palette[1], size=10, legend_label = f"{col} points")
+    
+    # Plot format
     rough_plot.y_range = Range1d(-5000, 45000)
-    rough_plot = plot_format(rough_plot, "Degrees", "Intensity", "top_left", "10pt", "10pt", "10pt")
+    rough_plot = plot_format(rough_plot, "Degrees", "Intensity", "top_left", "10pt", "9pt", "9pt")
     rough_plots.append(rough_plot)
 
 grid_rough = gridplot(children = rough_plots, ncols = 3, merge_tools=False)
 show(grid_rough)
-
 # -
 
 # ## Modified function
@@ -360,13 +367,299 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
     p2.y_range = Range1d(-5000, 45000)  
     figures.append(p2)
 
-   
-
-
-
 grid_modified = gridplot(children = figures, ncols = 2, merge_tools=False, width=500, height = 450)
 show(grid_modified)
 # -
+
+# ## Minimization function 
+
+# ### Gaussian function: $A_{1}\exp\left(-\frac{(x-x_0)^2}{2\sigma^2}\right)$
+#
+# In order to obtain a modified function as close as possible to the experimental the parameters that modify the base and background function have to be optimized according to a minimization function. These parameters are:
+#
+# *`x0:` introduces a lateral shifth to both the base and background functions
+#
+# *`Abase:` modified the amplitude of the base function
+#
+# *`sigma:` sigma parameter of the background gaussian function
+#
+# *`A1:` amplitude of the background function
+
+# +
+#| column: screen
+from bokeh.palettes import Set3
+from scipy.optimize import minimize
+
+# 1. Get base function points (330 points from -16.4 to 16.5)
+x_base = smooth_df.xaxis.values
+y_base = smooth_df.yaxis.values
+# x_base = np.concatenate(([-50000], x_base, [50000]))
+# y_base = np.concatenate(([0], y_base, [0]))
+
+# 2. get rough data 
+rough_df = pd.read_excel('data/rough_samples.xlsx', sheet_name='Data')
+source_rough = ColumnDataSource(rough_df)
+x_rough = rough_df['xaxis'].values.round(3)
+
+# 3. Get initial guesses
+guess_df = pd.read_excel('data/rough_samples.xlsx', sheet_name='Gaussian')
+guess_df = guess_df.set_index('Variables')
+
+# 4. Create df that will save optmized parameters
+columns = ['ann1_opt', 'pt2_opt', 'pt2b_opt', 'pt2c_opt', 'pt2d_opt', 'pt2e_opt']
+index = ['x0', 'Abase', 'sigma', 'Agaussian']
+optimized_df = pd.DataFrame(columns=columns, index=index)
+
+# 5. Define gaussian function
+gaussian = lambda x, x0, sigma, A1: A1 * np.exp(-((x - x0) / sigma) ** 2 / 2)
+
+# 6. Define cost function
+pchip = PchipInterpolator(x_base, y_base)
+def cost_function(params, y):
+    x0, A0, sigma, A1 = params
+    # Get new x axis
+    x_new = x_rough + x0 
+    # interpolate base function with respect to x_new (32 points)
+    y_base_modified = A0*pchip(x_new) 
+    # calculate background on original axis and with x0
+    y_background = gaussian(x_new, x0, sigma, A1)
+    # calculate modified function
+    y_modified = y_base_modified + y_background
+    # Compare directly with 32 points experimental data
+    return np.sum((y_modified - y) ** 2)
+
+# 7. Iterate over the experimental data
+rough_plots = []
+color_palette = Set3[len(rough_df.columns[1:])+2]
+bounds = ((None, None), (0, None), (0, None), (0, None))
+backgrounds = figure(title = 'Background functions with experimental data', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+backgroundsb = figure(title = 'Background functions', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+downsamplesg = figure(title = 'Gaussian downsampled points', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+differenceg = figure(title = 'Gaussian Experimental vs Optimized differences', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+
+for i, col in enumerate(rough_df.columns[1:]):
+    # 8. Get initial guesses
+    rough_plot = figure(title = str(col), width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+    guess = [guess_df.loc[var][col] for var in ['x0', 'Abase', 'sigma', 'Agaussian']]
+    # x0 = params[0]
+
+    # 8. Call minimization function
+    y_rough = rough_df[col].copy().values
+    cost_fn = lambda p:cost_function(p, y_rough)
+    result = minimize(cost_fn, guess)
+    # result = minimize(cost_fn, params, bounds=bounds)
+    optimized_parameters = result.x
+    colu = col + '_opt'
+    x0_opt, A0_opt, sigma_opt, A1_opt = optimized_parameters
+    optimized_df.loc['x0'][colu] = x0_opt
+    optimized_df.loc['Abase'][colu] = A0_opt
+    optimized_df.loc['sigma'][colu] = sigma_opt
+    optimized_df.loc['Agaussian'][colu] = A1_opt
+    
+    # 7. Calculate new optimized modified function
+    x_new_opt = x_rough + x0_opt 
+    # interpolate base function with respect to x_new (32 points)
+    y_base_opt = A0_opt*pchip(x_new_opt) 
+    # calculate background on original axis and with x0
+    y_background_opt = gaussian(x_new_opt, x0_opt, sigma_opt, A1_opt)
+    # calculate optmized function
+    y_optimized = y_base_opt + y_background_opt
+
+    vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
+    rough_plot.add_layout(vline)
+
+    # Plot optimize function lines
+    rough_plot.line(x_rough, y_base_opt, legend_label = 'Base', line_width = 5, color='#F96F5D')
+    rough_plot.line(x_rough, y_background_opt, legend_label = 'Bbackground', line_width = 5, color='#F9B5AC')
+    rough_plot.line(x_rough, y_optimized, legend_label = 'Optimized function', line_width = 5, color='#987284')
+    rough_plot.triangle(x_rough, y_optimized, legend_label = 'Optimized points', size = 8, color=color_palette[1])
+    backgrounds.line(x_rough, y_background_opt, color = color_palette[i], line_width = 5 , legend_label = f"Background {col}")
+    backgroundsb.line(x_rough, y_background_opt, color = color_palette[i], line_width = 5 , legend_label = f"Background {col}")
+    downsamplesg.line(x_rough, y_optimized, line_width=4, legend_label = f'Downsampling {col}', color = color_palette[i+1],  alpha = 0.9, line_dash='dashed')
+    downsamplesg.triangle(x_rough, y_optimized, size = 9, legend_label = f'Downsampling {col}', color = color_palette[i+1])
+
+    # Plot rough experimental data
+    rough_plot.line('xaxis', col, source=source_rough, color = '#9DC3E6', legend_label = str(col), line_width=4, line_dash = 'dashed')
+    rough_plot.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = f"{col} points")
+    backgrounds.line('xaxis', col, source=source_rough, color = color_palette[i], legend_label = str(col), line_width=4)
+    backgrounds.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = str(col))
+    downsamplesg.line('xaxis', col, source=source_rough, color = color_palette[i], legend_label = str(col), line_width=4)
+    downsamplesg.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = str(col))
+    
+    # Plot format
+    rough_plot.y_range = Range1d(-5000, 50000)
+    rough_plot.xaxis.ticker.desired_num_ticks = 10
+    rough_plot.yaxis.ticker.desired_num_ticks = 10
+    rough_plot = plot_format(rough_plot, "Degrees", "Intensity", "top_left", "10pt", "8pt", "9pt")
+    rough_plots.append(rough_plot)
+
+    # Difference plot
+    diff = y_rough - y_optimized
+    differenceg.line(x=x_rough, y=diff, legend_label = col, color = color_palette[i], line_width=4)
+    differenceg.circle(x=x_rough, y=diff, legend_label = col, fill_color= color_palette[i], size=7)
+
+plots = [backgrounds, backgroundsb, downsamplesg, differenceg]
+for plot in plots:
+    plot = plot_format(plot, "Degrees", "Intensity", "top_left", "10pt", "10pt", "9pt")
+    plot.y_range = Range1d(-5000, 50000)
+    rough_plots.append(plot)
+    plot.xaxis.ticker.desired_num_ticks = 10
+    plot.yaxis.ticker.desired_num_ticks = 10
+backgroundsb.y_range = Range1d(-1000, 6000)
+differenceg.y_range = Range1d(-3000, 3000)
+
+grid_rough = gridplot(children = rough_plots, ncols = 3, merge_tools=False, width = 480, height = 430)
+show(grid_rough)
+
+merged_df = guess_df.join(optimized_df)\
+    [['ann1', 'ann1_opt', 'pt2', 'pt2_opt', 'pt2b', 'pt2b_opt', 'pt2c', 'pt2c_opt', 'pt2d', 'pt2d_opt', 'pt2e', 'pt2e_opt']]
+display(merged_df)
+# -
+
+# ### Lorentzian function:  $A_{2} \frac{1}{1+\left(\frac{x-x_0}{\gamma}\right)^2}$
+#
+# In order to obtain a modified function as close as possible to the experimental the parameters that modify the base and background function have to be optimized according to a minimization function. These parameters are:
+#
+# *`x0:` introduces a lateral shifth to both the base and background functions
+#
+# *`A0:` modified the amplitude of the base function
+#
+# *`gamma:` gamma parameter of the background gaussian function
+#
+# *`A2:` amplitude of the background function
+
+# +
+#| column: screen
+from bokeh.palettes import Set3
+from scipy.optimize import minimize
+
+# 1. Get base function points (330 points from -16.4 to 16.5)
+x_base = smooth_df.xaxis.values
+y_base = smooth_df.yaxis.values
+
+# 2. get rough data 
+rough_df = pd.read_excel('data/rough_samples.xlsx', sheet_name='Data')
+source_rough = ColumnDataSource(rough_df)
+x_rough = rough_df['xaxis'].values.round(3)
+
+# 3. Get initial guesses
+guess_df = pd.read_excel('data/rough_samples.xlsx', sheet_name='Lorentzian')
+guess_df = guess_df.set_index('Variables')
+
+# 4. Create df that will save optmized parameters
+columns = ['ann1_opt', 'pt2_opt', 'pt2b_opt', 'pt2c_opt', 'pt2d_opt', 'pt2e_opt']
+index = ['x0', 'Abase', 'gamma', 'Alorentzian']
+optimized_df = pd.DataFrame(columns=columns, index=index)
+
+# 5. Define lorentzian function
+lorentzian = lambda x, x0, gamma, A1: A1/(1 + ((x-x0)/gamma)**2)
+
+# 6. Define cost function
+pchip = PchipInterpolator(x_base, y_base)
+def cost_function(params, y):
+    x0, A0, gamma, A1 = params
+    # Get new x axis
+    x_new = x_rough + x0 
+    # interpolate base function with respect to x_new (32 points)
+    y_base_modified = A0*pchip(x_new) 
+    # calculate background on original axis and with x0
+    y_background = lorentzian(x_new, x0, gamma, A1)
+    # calculate modified function
+    y_modified = y_base_modified + y_background
+    # Compare directly with 32 points experimental data
+    return np.sum((y_modified - y) ** 2)
+
+# 7. Iterate over the experimental data
+rough_plots = []
+color_palette = Set3[len(rough_df.columns[1:])+2]
+bounds = ((None, None), (0, None), (0, None), (0, None))
+backgrounds = figure(title = 'Background functions with experimental data', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+backgroundsb = figure(title = 'Background functions', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+downsamples_l = figure(title = 'Lorentzian Downsampled points', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+differencel = figure(title = 'Lorentzian Experimental vs Optimized differences', width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+
+for i, col in enumerate(rough_df.columns[1:]):
+    # 8. Get initial guesses
+    rough_plot = figure(title = str(col), width = 550, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+    guess = [guess_df.loc[var][col] for var in ['x0', 'Abase', 'gamma', 'Alorentzian']]
+    
+    # 9. Call minimization function
+    y_rough = rough_df[col].copy().values
+    cost_fn = lambda p:cost_function(p, y_rough)
+    result = minimize(cost_fn, guess)
+    optimized_parameters = result.x
+    colu = col + '_opt'
+    x0_opt, A0_opt, gamma_opt, A1_opt = optimized_parameters
+    optimized_df.loc['x0'][colu] = x0_opt
+    optimized_df.loc['Abase'][colu] = A0_opt
+    optimized_df.loc['gamma'][colu] = gamma_opt
+    optimized_df.loc['Alorentzian'][colu] = A1_opt
+    
+    # 10. Calculate optimized function
+    # Calculate new optimized xaxis
+    x_new_opt = x_rough + x0_opt 
+    # interpolate base function with respect to x_new (32 points)
+    y_base_opt = A0_opt*pchip(x_new_opt) 
+    # calculate background on original axis and with x0
+    y_background_opt = lorentzian(x_new_opt, x0_opt, gamma_opt, A1_opt)
+    # calculate optmized function
+    y_optimized = y_base_opt + y_background_opt
+
+    # 11. Plot optimize function lines
+    vline = Span(location=0.0, dimension = 'height', line_color='#FEEED9', line_width=1)
+    rough_plot.add_layout(vline)
+    rough_plot.line(x_rough, y_base_opt, legend_label = 'Base', line_width = 5, color='#F96F5D')
+    rough_plot.line(x_rough, y_background_opt, legend_label = 'Bbackground', line_width = 5, color='#F9B5AC')
+    rough_plot.line(x_rough, y_optimized, legend_label = 'Optimized function', line_width = 5, color='#987284')
+    rough_plot.triangle(x_rough, y_optimized, legend_label = 'Optimized points', size = 8, color=color_palette[1])
+    backgrounds.line(x_rough, y_background_opt, color = color_palette[i], line_width = 5 , legend_label = f"Background {col}")
+    backgroundsb.line(x_rough, y_background_opt, color = color_palette[i], line_width = 5 , legend_label = f"Background {col}")
+    downsamples_l.line(x_rough, y_optimized, line_width=4, legend_label = f'Downsampling {col}', color = color_palette[i+1],  alpha = 0.9, line_dash='dashed')
+    downsamples_l.triangle(x_rough, y_optimized, size = 9, legend_label = f'Downsampling {col}', color = color_palette[i+1])
+
+    # 12. Plot rough experimental data
+    rough_plot.line('xaxis', col, source=source_rough, color = '#9DC3E6', legend_label = str(col), line_width=4, line_dash = 'dashed')
+    rough_plot.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = f"{col} points")
+    backgrounds.line('xaxis', col, source=source_rough, color = color_palette[i], legend_label = str(col), line_width=4)
+    backgrounds.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = str(col))
+    downsamples_l.line('xaxis', col, source=source_rough, color = color_palette[i], legend_label = str(col), line_width=4)
+    downsamples_l.circle('xaxis', col, source=source_rough, fill_color= color_palette[i], size=7, legend_label = str(col))
+    
+    # 13. Plot format
+    rough_plot.y_range = Range1d(-5000, 50000)
+    rough_plot.xaxis.ticker.desired_num_ticks = 10
+    rough_plot.yaxis.ticker.desired_num_ticks = 10
+    rough_plot = plot_format(rough_plot, "Degrees", "Intensity", "top_left", "10pt", "8pt", "9pt")
+    rough_plots.append(rough_plot)
+
+    # Difference plot
+    diff = y_rough - y_optimized
+    differencel.line(x=x_rough, y=diff, legend_label = col, color = color_palette[i], line_width=4)
+    differencel.circle(x=x_rough, y=diff, legend_label = col, fill_color= color_palette[i], size=7)
+
+plots = [backgrounds, backgroundsb, downsamples_l, differencel]
+for plot in plots:
+    plot = plot_format(plot, "Degrees", "Intensity", "top_left", "10pt", "10pt", "9pt")
+    plot.y_range = Range1d(-5000, 50000)
+    plot.xaxis.ticker.desired_num_ticks = 10
+    plot.yaxis.ticker.desired_num_ticks = 10
+    rough_plots.append(plot)
+backgroundsb.y_range = Range1d(-1000, 5000)
+differencel.y_range = Range1d(-3000, 3000)
+
+grid_rough = gridplot(children = rough_plots, ncols = 3, merge_tools=False, width = 480, height = 430)
+show(grid_rough)
+
+merged_df = guess_df.join(optimized_df)\
+    [['ann1', 'ann1_opt', 'pt2', 'pt2_opt', 'pt2b', 'pt2b_opt', 'pt2c', 'pt2c_opt', 'pt2d', 'pt2d_opt', 'pt2e', 'pt2e_opt']]
+display(merged_df)
+# -
+
+#| column: page
+grid_samples = gridplot(children = [downsamplesg, downsamples_l, differenceg, differencel], ncols = 2, merge_tools=False, width = 570, height = 450)
+show(grid_samples)
+
+# Plot background functions from all fits
 
 # ## Conclusions
 
@@ -377,7 +670,7 @@ show(grid_modified)
 # 5. The next step is to calculate an minimization function in order to minimize the error between the experimental data and the modified function.
 
 # ## Simulation WebApp
-# A web application including all the previous functions can be access here
+# A web application including all the previous functions can be access here: [Streamlit app](https://charldelaoa-optosurf-streamlitc-experimental-data-st-jg9o2q.streamlit.app)
 #
 # ::: {#fig-4}
 #

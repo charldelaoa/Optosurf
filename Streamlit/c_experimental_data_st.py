@@ -165,7 +165,3 @@ for j, (name, f, params_nums, params_names) in enumerate(functions):
         with columns[1]:
             st.bokeh_chart(p)
         figures.append(p)
-
- 
-
-

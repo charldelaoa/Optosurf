@@ -11,6 +11,8 @@ import dash_bootstrap_components as dbc
 # 1. Load data
 raw_data = np.loadtxt("data/e/Ann_wafer10_off_diodes.dat", delimiter=',')
 dfAnn = pd.read_csv("data/e/Ann_wafer10_calculated.csv")
+raw_data_rough = np.loadtxt("data/e/Ann_wafer7_off_diodes.dat", delimiter=',')
+dfRough = pd.read_csv("data/e/Ann_wafer7_calculate.csv")
 
 # Define app
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
@@ -67,8 +69,8 @@ def display_selected_data(selectedData):
         n_unique = len(selected_dfAnn['n'].unique())
         cols = min(n_unique, 3)  # Maximum of 3 columns
         rows = (n_unique - 1) // cols + 1
-
-        fig = make_subplots(rows=rows, cols=cols, horizontal_spacing=0.05, vertical_spacing=0.05)
+        titles = list(selected_dfAnn['z'])
+        fig = make_subplots(rows=rows, cols=cols, horizontal_spacing=0.05, vertical_spacing=0.05, subplot_titles=titles)
 
         # Add scatter plots to each subplot
         for i, n in enumerate(selected_dfAnn['n'].unique()):
@@ -79,18 +81,23 @@ def display_selected_data(selectedData):
             fig.add_trace(go.Scatter(
                 x=x,
                 y=y,
-                mode='markers',
-                name = f'Aq: {Aq:.2f}'
+                line = dict(width=4),
                 ), row=1+i//cols, col=1+i%cols)
             fig.add_trace(go.Scatter(
                 x=x,
                 y=y,
+                mode='markers',
+                name = f'Aq: {Aq:.2f}',
+                marker = dict(size=10),
                 ), row=1+i//cols, col=1+i%cols)
-            fig.update_xaxes(
-            title_text=f"Aq: {Aq:.4f}",
+            
+            fig.update_yaxes(
+            title_text=f"Intensity",
             row=1+i//cols,
             col=1+i%cols,
             )
+            
+
 
             
             # fig.add_trace(go.Scatter(

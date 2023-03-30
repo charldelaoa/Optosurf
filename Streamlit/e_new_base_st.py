@@ -19,41 +19,44 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
 
 # Set up layout
 app.layout = dbc.Container([
-    dbc.Row([
-        html.Div('Ann10 Plot', className="text-primary text-center fs-3")
-    ]),
-
-    dbc.Row([
-        dbc.Col([
-            dcc.Graph(
-                id='plot1',
-                figure=go.Figure(data=go.Scatter(
-                    x=dfAnn['x'],
-                    y=dfAnn['y'],
-                    mode='markers',
-                    marker=dict(color=dfAnn['z'], colorscale='turbo'),
-                    customdata=dfAnn[['z', 'n']],
-                    hovertemplate='x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>z: %{customdata[0]:.2f}<br>n: %{customdata[1]}'
-                )).update_layout(
-                    height=600,
-                    width=600,
-                    xaxis_title='x (mm)',
-                    yaxis_title='y (mm)',
-                    title = 'Ann10',
-                    coloraxis_colorbar=dict(title='z', len=0.75, y=0.5)
-                )
+dbc.Row([
+html.Div('Ann10 Plot', className="text-primary text-center fs-3")
+]),
+dbc.Row([
+    dbc.Col([
+        dcc.Graph(
+            id='plot1',
+            figure=go.Figure(data=go.Scatter(
+                x=dfAnn['x'],
+                y=dfAnn['y'],
+                mode='markers',
+                marker=dict(color=dfAnn['z'], colorscale='turbo'),
+                customdata=dfAnn[['z', 'n']],
+                hovertemplate='x: %{x:.2f} mm<br>y: %{y:.2f} mm<br>z: %{customdata[0]:.2f}<br>n: %{customdata[1]}'
+            )).update_layout(
+                height=600,
+                width=600,
+                xaxis_title='x (mm)',
+                yaxis_title='y (mm)',
+                title = 'Ann10',
+                coloraxis_colorbar=dict(title='z', len=0.75, y=0.5)
             )
-        ], width=4),
+        )
+    ], width=12),
+]),
 
-        dbc.Col([
-            dcc.Graph(id='subplots')
-        ], width=6),
-    ]),
+dbc.Row([
+    html.Div([
+        dcc.Graph(id='subplots')
+    ], className='col-12')
+]),
 
+dbc.Row([
     html.Div([
         html.H4('Selected Data'),
         html.Table(id='selected_data')
-    ], className='col-12'),
+    ], className='col-12')
+]),
 ], fluid=True)
 
 # Define callbacks
@@ -67,7 +70,7 @@ def display_selected_data(selectedData):
         selected_dfAnn = dfAnn.iloc[indices]
         selected_data_table = [html.Tr([html.Th(col) for col in selected_dfAnn.columns])] + [html.Tr([html.Td(selected_dfAnn.iloc[i][col]) for col in selected_dfAnn.columns]) for i in range(len(selected_dfAnn))]
         n_unique = len(selected_dfAnn['n'].unique())
-        cols = min(n_unique, 3)  # Maximum of 3 columns
+        cols = min(n_unique, 4)  # Maximum of 3 columns
         rows = (n_unique - 1) // cols + 1
         titles = list(selected_dfAnn['z'])
         fig = make_subplots(rows=rows, cols=cols, horizontal_spacing=0.05, vertical_spacing=0.05, subplot_titles=titles)
@@ -82,6 +85,7 @@ def display_selected_data(selectedData):
                 x=x,
                 y=y,
                 line = dict(width=4),
+                name = f'Aq: {Aq:.2f}',
                 ), row=1+i//cols, col=1+i%cols)
             fig.add_trace(go.Scatter(
                 x=x,

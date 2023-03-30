@@ -13,7 +13,7 @@ import dash_bootstrap_components as dbc
 raw_data = np.loadtxt("data/e/Ann_wafer7_off_diodes.dat", delimiter=',')
 dfAnn = pd.read_csv("data/e/Ann_wafer7_calculate.csv")
 raw_data_Ann_10 = np.loadtxt("data/e/Ann_wafer10_off_diodes.dat", delimiter=',')
-na = 217
+na = 764
 dfAnnbase = pd.read_csv("data/e/Ann_wafer10_calculated.csv")
 
 # 2. Define app

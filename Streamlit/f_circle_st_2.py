@@ -11,8 +11,6 @@ from scipy.interpolate import PchipInterpolator
 from scipy.optimize import minimize, curve_fit
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-from sklearn.cluster import KMeans
-from scipy.interpolate import interp1d
 
 st.set_page_config(page_title="3D profiles", layout="wide")
 
@@ -203,7 +201,9 @@ for i, row in edited_df.iterrows():
     optimized_plot.add_layout(vline)
     
 optimized_plot = plot_format(optimized_plot, "Degrees", "Intensity", "top_right", "10pt", "11pt", "8pt")       
-st.bokeh_chart(optimized_plot)
+bool_optimized = st.checkbox("Show optimized plot", value=True)
+if bool_optimized:
+    st.bokeh_chart(optimized_plot)
 
 col3, col4 = st.columns([3, 1.7])
 
@@ -237,6 +237,9 @@ shifted_axis = onaxis - y_shifted
 
 # shifted_axis_df = pd.DataFrame(shifted_axis, columns=['shifted_axis'])
 # shifted_axis_df.to_csv('data/f/shifted_axis.csv', index=False)
+
+bool_grid = st.checkbox("Show grid", value=True)
+
 with col3:
     p1 = figure(title=f'Angle vs. x0 (x0 = {slope:.2f}*angle {intercept:.2f})')
     p1.line(x=minimized_df['angle'], y=minimized_df['x0'], line_width=2, color = new_colors[0])
@@ -260,7 +263,6 @@ with col3:
     p4 = plot_format(p4, "Angle", "amplitude", "top_right", "10pt", "11pt", "8pt")
     
     grid = gridplot(children=[p1, p2, p3, p4], ncols=2, merge_tools=False, width = 350, height = 340)
-    st.bokeh_chart(grid)
 
     p5 = figure(title='Shifted optosurf axis', width=1000, height=350, y_range=(-0.2, 0.9))
     p5.circle(x=shifted_axis, y=np.zeros(len(onaxis))+0.5, line_width=2, color = new_colors[6], size = 7, legend_label="Shifted axis")
@@ -268,10 +270,13 @@ with col3:
     p5.xaxis.ticker.desired_num_ticks = 40
     p5 = plot_format(p5, "Slice", "angle", "top_right", "10pt", "11pt", "8pt")
     
-    st.bokeh_chart(p5)
+    if bool_grid:
+        st.bokeh_chart(grid)
+        st.bokeh_chart(p5)
 
 with col4:
-    st.dataframe(minimized_df, height=700)
+    if bool_grid:
+        st.dataframe(minimized_df, height=700)
 
 # Shifted plots
 shifted_plot = figure(title = 'Shifted plot', width = 1000, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
@@ -287,35 +292,46 @@ for i, row in edited_df.iterrows():
     shifted_plot.triangle(x=shifted_axis, y=y, size = 8,
                             legend_label=f'Shifted: {offaxis[slice_off_ind]:.4f} ({slice_off_ind})', color = '#65757B')
 shifted_plot = plot_format(shifted_plot, "Angle", "Amplitude", "top_right", "10pt", "11pt", "8pt")                            
-st.bokeh_chart(shifted_plot)
+bool_shifted = st.checkbox("Show shifted plot", value=True)
+if bool_shifted:
+    st.bokeh_chart(shifted_plot)
 
 
 # Base function
-
-
 st.header("Base function")
-base_1 = st.number_input('Starting base function slice', min_value=0, max_value=1023, value=250)
-base_2 = st.number_input('Finish base function slice', min_value=0, max_value=1023, value=255)
-base_step = st.number_input('Base function step', min_value=0, max_value=1023, value=1)
-base_plot = figure(title = 'Base function', width = 1300, height = 500, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
-base_plot_2 = figure(title = 'Base function clusters', width = 1300, height = 500, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
-slices_base = np.arange(base_1, base_2+1, step=base_step)
-st.write(f'Range from {offaxis[base_1]:.3f} to  {offaxis[base_2]:.3f}')
+with st.expander('Analysis'):
+    base_1 = st.number_input('Starting base function slice', min_value=0, max_value=1023, value=20)
+    base_2 = st.number_input('Finish base function slice', min_value=0, max_value=1023, value=1000)
+    base_step = st.number_input('Base function step', min_value=0, max_value=1023, value=1)
+    base_plot = figure(title = 'Base function', width = 1300, height = 500, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+    base_plot_2 = figure(title = 'Base function clusters', width = 1300, height = 500, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+    slices_base = np.arange(base_1, base_2+1, step=base_step)
+    st.write(f'Range from {offaxis[base_1]:.3f} to  {offaxis[base_2]:.3f}')
+    left = st.number_input('Left angle', min_value=-15.0, max_value=15.0, value=-5.0)
+    right = st.number_input('Right angle', min_value=-15.0, max_value=15.0, value=5.0)
+
 
 # Populate base function by shifting with respect to zero
 x_base = []
 y_base = []
+slice_array = []
+
 for k, slice in enumerate(slices_base):
     y = vals[:,slice]
     x0 = minimized_df.loc[slice, 'x0']
     amp = minimized_df.loc[slice, 'amplitude']
     shifted_axis_2 = shifted_axis + offaxis[slice]
+    # y = y*amp
     # shifted_axis_2 = shifted_axis + x0
-    x_base.append(list(shifted_axis_2))
-    y_base.append(list(y))
+    # shifted_axis_2 = onaxis + offaxis[slice]
+    # shifted_axis_2 = shifted_axis + x0
+    # shifted_axis_2 = shifted_axis + x0
+    x_base.extend(list(shifted_axis_2))
+    y_base.extend(list(y))
+    slice_array.extend(np.ones(len(shifted_axis_2))*slice)
 
-left = st.number_input('Left angle', min_value=-15.0, max_value=15.0, value=-2.0)
-right = st.number_input('Right angle', min_value=-15.0, max_value=15.0, value=2.0)
+base_function_df = pd.DataFrame({'xaxis': x_base, 'yaxis': y_base, 'slice': slice_array})
+base_function_df = base_function_df.sort_values(by='xaxis')
 
 x_base, y_base = zip(*sorted(zip(x_base, y_base)))
 x_base = np.array(x_base)
@@ -356,7 +372,73 @@ base_plot_2.line(x=x_interp, y=y_interp, line_width=5.5,
 base_plot_2.circle(x=x_averaged, y=y_averaged, size=5.5, color = '#EC5766', legend_label='Averaged')
 
 base_plot_2 = plot_format(base_plot_2, "Angle", "Amplitude", "top_right", "10pt", "11pt", "8pt")
+# st.bokeh_chart(base_plot_2)
+
+## sections plot
+new_colors = []
+for i in range(42):
+        new_colors.append('#99c1b9')
+        new_colors.append('#8e7dbe')
+        new_colors.append('#00b4d8')
+        new_colors.append('#38A3A5')
+        new_colors.append('#d88c9a')
+        new_colors.append('#F283B6')
+        new_colors.append('#f2d0a9')
+
+base_function_df = base_function_df
+sections_df = pd.DataFrame({'start': [20], 'end': [25]})
+sections_edited_df = st.sidebar.experimental_data_editor(sections_df, num_rows="dynamic")
+
+base_sections = figure(title = 'Base function sections', width = 1300, height = 800, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
+# st.write(base_function_df)
+# group base_function_df by slice
+
+for z, row in sections_edited_df.iterrows():
+    slices = np.arange(int(row['start']), int(row['end']+1), step=1)
+    amplitudes = minimized_df.loc[slices]['amplitude']
+    # st.write(amplitudes)
+    mask = base_function_df['slice'].isin(slices)
+    sliced_df = base_function_df.loc[mask]
+    sliced_df.sort_values(by=['slice', 'xaxis'], inplace=True)
+    # st.write(sliced_df)
+    for k, amp in amplitudes.iteritems():
+        internal_slice = int(k)
+        sliced_df_2 = sliced_df[sliced_df['slice'] == internal_slice]
+        sliced_df_2['yaxis'] = sliced_df_2['yaxis'] / amp
+        base_sections.triangle(x=sliced_df_2['xaxis'], y=sliced_df_2['yaxis'], size=8.5, 
+                               color = new_colors[z], legend_label=f'{int(row.start)} to {int(row.end)} amp')
+
+        # st.write(row2)
+    # base_sections.circle(x=sliced_df['xaxis'], y=sliced_df['yaxis'], size=5.5, color = new_colors[z], legend_label=f'{int(row.start)} to {int(row.end)}')
+
+base_sections.xaxis.ticker.desired_num_ticks = 20
+base_sections = plot_format(base_sections, "Angle", "Amplitude", "top_right", "10pt", "11pt", "8pt")
+st.bokeh_chart(base_sections)
 st.bokeh_chart(base_plot_2)
+
+st.write(minimized_df)
+#         a = base_function_df.groupby('slice')
+#         st.write(a)
+        # y = vals[:, slice]
+
+    # y = vals[:,slice]
+    # x0 = minimized_df.loc[slice, 'x0']
+    # amp = minimized_df.loc[slice, 'amplitude']
+    # shifted_axis_2 = shifted_axis + offaxis[slice]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -139,8 +139,8 @@ choice2 = container.radio("Chose 2nd file",
                   'Rotate_offaxis_10degscan.csv', 'Rotate_onaxis_10degscan.csv'))
 
 container.header("Select a range of slices to analyse/minimise")
-slice_1 = container.number_input('Starting slice', min_value=0, max_value=1023, value=250)
-slice_2 = container.number_input('Finish slice', min_value=0, max_value=1023, value=750)
+slice_1 = container.number_input('Starting slice', min_value=0, max_value=1023, value=20)
+slice_2 = container.number_input('Finish slice', min_value=0, max_value=1023, value=1000)
 slice_step = container.number_input('Slice step', min_value=0, max_value=50, value=1)
 polynomial = container.number_input('Polynomial degree', min_value=1, max_value=50, value=3)
 container.markdown(f'{offaxis[slice_2]:.2f} to {offaxis[slice_1]:.2f} degrees')
@@ -376,7 +376,7 @@ for j, slice in enumerate(slices):
         row = [offaxis[slice], x0_opt, x0_opt - offaxis[slice], slice, A0_opt, rmse]
         minimized_df.loc[j] = row
 
-minimized_df.to_csv('data/f/minimized.csv', index=False)
+# minimized_df.to_csv('data/f/minimized.csv', index=False)
 col3, col4 = st.columns([3, 1.7])
 
 def linear_function(x, m , b):
@@ -464,8 +464,8 @@ st.bokeh_chart(shifted_plot)
 
 # Base function plot
 st.header("Base function")
-base_1 = st.number_input('Starting base function slice', min_value=0, max_value=1023, value=250)
-base_2 = st.number_input('Finish base function slice', min_value=0, max_value=1023, value=255)
+base_1 = st.number_input('Starting base function slice', min_value=0, max_value=1023, value=50)
+base_2 = st.number_input('Finish base function slice', min_value=0, max_value=1023, value=800)
 base_step = st.number_input('Base function step', min_value=0, max_value=1023, value=1)
 base_plot = figure(title = 'Base function', width = 1300, height = 650, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
 slices_base = np.arange(base_1, base_2+1, step=base_step)
@@ -486,6 +486,8 @@ for k, slice in enumerate(slices_base):
 #                             legend_label=f'Shifted: {offaxis[slice]:.4f} ({slice})', color = '#65757B')
 base_plot = plot_format(base_plot, "Angle", "Amplitude", "top_right", "10pt", "11pt", "8pt")
 st.bokeh_chart(base_plot)
+
+# Plot sections
 
 
 

@@ -63,6 +63,7 @@ for i in range(42):
 
 # offaxis = np.arange(0, 1024, 1)*10/1024
 offaxis = np.arange(-512, 512, 1)*20/1024 + 1.82
+# offaxis = np.arange(-2048, 2048, 1)*12/4096 + 1
 # offaxis = offaxis[::-1]
 onaxis=np.arange(-15.5,16.5,1)
 
@@ -132,7 +133,8 @@ container = st.sidebar.container()
 container.header("Select files to plot")
 choice1 = container.radio("Chose 1st file",
                  ('Rotate_Ann7_offaxis_10degscan.csv', 'Rotate_Ann7_onaxis_10degscan.csv', 
-                  'Rotate_offaxis_10degscan.csv', 'Rotate_onaxis_10degscan.csv'))
+                  'Rotate_offaxis_10degscan.csv', 'Rotate_onaxis_10degscan.csv', 'refrockley_focus_0_off_0.csv', 'refrockley_focus_0_off_0.csv', 
+                  'refrockley_focus_0_off_CW1.csv', 'refrockley_focus_0_off_CW2.csv', 'refrockley_focus_0[92].csv'))
 
 choice2 = container.radio("Chose 2nd file",
                  ('Rotate_Ann7_offaxis_10degscan.csv', 'Rotate_Ann7_onaxis_10degscan.csv', 
@@ -140,7 +142,7 @@ choice2 = container.radio("Chose 2nd file",
 
 container.header("Select a range of slices to analyse/minimise")
 slice_1 = container.number_input('Starting slice', min_value=0, max_value=1023, value=20)
-slice_2 = container.number_input('Finish slice', min_value=0, max_value=1023, value=1000)
+slice_2 = container.number_input('Finish slice', min_value=0, max_value=4000, value=1000)
 slice_step = container.number_input('Slice step', min_value=0, max_value=50, value=1)
 polynomial = container.number_input('Polynomial degree', min_value=1, max_value=50, value=3)
 container.markdown(f'{offaxis[slice_2]:.2f} to {offaxis[slice_1]:.2f} degrees')
@@ -229,7 +231,7 @@ if bool_3d:
 background_bool = st.checkbox("Background", value=False)
 
 # 9. Get matrix 32*1024
-vals = spots['data/f/Rotate_Ann7_onaxis_10degscan.csv']
+vals = spots[f'data/f/{choice1}']
 optimized_plot = figure(title = 'Optimized plot', width = 700, height = 450, tooltips = [("index", "$index"),("(x,y)", "($x, $y)")])
 count = 0 
 
